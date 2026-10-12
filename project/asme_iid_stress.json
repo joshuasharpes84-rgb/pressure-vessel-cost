@@ -1,0 +1,93 @@
+{
+  "_source": "ASME BPVC Section II, Part D (Customary), 2013 edition. Table 1A (ferrous) / Table 1B (nonferrous): Maximum Allowable Stress Values S, Section VIII Division 1 column. Local copy: Vessel Scale Up\\Asme-Section-II-materials-part-d-properties-customary-2013-www.fouladline.com.pdf (also in Plant Resources\\Materials of Construction\\Reference Material\\). The PDF is a scan with no text layer; values were transcribed by visual reading of the page images on 2026-09-29.",
+  "_page_convention": "pdf_page = printed_page + 49 throughout Tables 1A/1B. Each line is spread over 4 pages: identity (spec/grade/UNS), tensile/yield/max-temperature limits, stresses -20..900 F, stresses 950..1650 F (1B: 950..1800 F). 'pages' lists the printed page numbers of that group.",
+  "_units": "S in ksi; temperatures in deg F (metal temperature 'not exceeding'). The first key '100' is the -20 to 100 F column. Linear interpolation between tabulated temperatures is permitted (II-D Subpart 1 guideline).",
+  "_italics": "Values in italics in the source are time-dependent (creep-governed). 'creep_from_F' records the first italic column.",
+  "_G5": "Austenitic/Ni-alloy lines come in pairs. Higher values carry Note G5 (permit up to ~90% of yield at temperature; may cause dimensional change, so not recommended for flanges or gasketed joints). Lower values are the default here ('S_ksi'); the G5 values are kept as 'S_ksi_G5'.",
+  "materials": {
+    "SA-285-C": {
+      "desc": "Carbon steel plate", "spec": "SA-285", "grade": "C", "uns": "K02801", "p_no": "1-1",
+      "table": "1A", "line": 6, "pages": [10, 11, 12, 13],
+      "tensile_ksi": 55, "yield_ksi": 30, "max_T_VIII1_F": 900, "notes": "G10, S1, T2", "ext_press_chart": "CS-2",
+      "creep_from_F": 750,
+      "S_ksi": {"100": 15.7, "150": 15.7, "200": 15.7, "300": 15.7, "400": 15.7, "500": 15.7, "600": 15.3, "650": 14.8,
+                "700": 14.3, "750": 13.0, "800": 10.8, "850": 8.7, "900": 5.9}
+    },
+    "SA-516-70": {
+      "desc": "Carbon steel plate", "spec": "SA-516", "grade": "70", "uns": "K02700", "p_no": "1-2",
+      "table": "1A", "line": 6, "pages": [22, 23, 24, 25],
+      "tensile_ksi": 70, "yield_ksi": 38, "max_T_VIII1_F": 1000, "notes": "G10, S1, T2", "ext_press_chart": "CS-2",
+      "creep_from_F": 750,
+      "S_ksi": {"100": 20.0, "150": 20.0, "200": 20.0, "300": 20.0, "400": 20.0, "500": 20.0, "600": 19.4, "650": 18.8,
+                "700": 18.1, "750": 14.8, "800": 12.0, "850": 9.3, "900": 6.7, "950": 4.0, "1000": 2.5}
+    },
+    "SA-387-11-2": {
+      "desc": "1-1/4Cr-1/2Mo-Si plate, Class 2", "spec": "SA-387", "grade": "11 Cl.2", "uns": "K11789", "p_no": "4-1",
+      "table": "1A", "line": 33, "pages": [38, 39, 40, 41],
+      "tensile_ksi": 75, "yield_ksi": 45, "max_T_VIII1_F": 1200, "notes": "S4, T3", "ext_press_chart": "CS-3",
+      "creep_from_F": 850,
+      "S_ksi": {"100": 21.4, "200": 21.4, "300": 21.4, "400": 21.4, "500": 21.4, "600": 21.4, "650": 21.4, "700": 21.4,
+                "750": 21.4, "800": 21.4, "850": 20.2, "900": 13.7, "950": 9.3, "1000": 6.3, "1050": 4.2, "1100": 2.8,
+                "1150": 1.9, "1200": 1.2}
+    },
+    "SA-387-22-2": {
+      "desc": "2-1/4Cr-1Mo plate, Class 2", "spec": "SA-387", "grade": "22 Cl.2", "uns": "K21590", "p_no": "5A-1",
+      "table": "1A", "line": 18, "pages": [42, 43, 44, 45],
+      "tensile_ksi": 75, "yield_ksi": 45, "max_T_VIII1_F": 1200, "notes": "S4, T4, W7, W9", "ext_press_chart": "CS-3",
+      "creep_from_F": 900,
+      "S_ksi": {"100": 21.4, "200": 21.4, "300": 20.9, "400": 20.6, "500": 20.5, "600": 20.4, "650": 20.2, "700": 20.0,
+                "750": 19.7, "800": 19.3, "850": 18.7, "900": 15.8, "950": 11.4, "1000": 7.8, "1050": 5.1, "1100": 3.2,
+                "1150": 2.0, "1200": 1.2}
+    },
+    "SA-240-304L": {
+      "desc": "18Cr-8Ni austenitic stainless plate", "spec": "SA-240", "grade": "304L", "uns": "S30403", "p_no": "8-1",
+      "table": "1A", "line": 44, "line_G5": 43, "pages": [86, 87, 88, 89],
+      "tensile_ksi": 70, "yield_ksi": 25, "max_T_VIII1_F": 1200, "notes": "G21, T6 (line 43: G5, G21, T4)", "ext_press_chart": "HA-3",
+      "creep_from_F": 900,
+      "S_ksi":    {"100": 16.7, "200": 14.3, "300": 12.8, "400": 11.7, "500": 10.9, "600": 10.4, "650": 10.2, "700": 10.0,
+                   "750": 9.8, "800": 9.7, "850": 9.5, "900": 9.3, "950": 9.1, "1000": 7.8, "1050": 6.3, "1100": 5.1,
+                   "1150": 4.0, "1200": 3.2},
+      "S_ksi_G5": {"100": 16.7, "200": 16.7, "300": 16.7, "400": 15.8, "500": 14.7, "600": 14.0, "650": 13.7, "700": 13.5,
+                   "750": 13.3, "800": 13.0, "850": 12.8, "900": 11.9, "950": 9.9, "1000": 7.8, "1050": 6.3, "1100": 5.1,
+                   "1150": 4.0, "1200": 3.2}
+    },
+    "SA-240-316L": {
+      "desc": "16Cr-12Ni-2Mo austenitic stainless plate", "spec": "SA-240", "grade": "316L", "uns": "S31603", "p_no": "8-1",
+      "table": "1A", "line": 10, "line_G5": 9, "pages": [74, 75, 76, 77],
+      "tensile_ksi": 70, "yield_ksi": 25, "max_T_VIII1_F": 850, "notes": "G21 (line 9: G5, G21)", "ext_press_chart": "HA-4",
+      "creep_from_F": null,
+      "S_ksi":    {"100": 16.7, "200": 14.2, "300": 12.7, "400": 11.7, "500": 10.9, "600": 10.4, "650": 10.2, "700": 10.0,
+                   "750": 9.8, "800": 9.6, "850": 9.4},
+      "S_ksi_G5": {"100": 16.7, "200": 16.7, "300": 16.7, "400": 15.7, "500": 14.8, "600": 14.0, "650": 13.7, "700": 13.5,
+                   "750": 13.2, "800": 12.9, "850": 12.7}
+    },
+    "SA-240-2205": {
+      "desc": "22Cr-5Ni-3Mo-N duplex stainless plate", "spec": "SA-240", "grade": "2205", "uns": "S32205", "p_no": "10H-1",
+      "table": "1A", "line": 15, "pages": [134, 135, 136, 137],
+      "tensile_ksi": 95, "yield_ksi": 65, "max_T_VIII1_F": 600, "notes": "G19", "ext_press_chart": "HA-5",
+      "creep_from_F": null,
+      "S_ksi": {"100": 27.1, "200": 27.1, "300": 26.2, "400": 25.2, "500": 24.6, "600": 24.3},
+      "_note": "600 F limit reflects 475 C (885 F) embrittlement of duplex. S31803 (same page, line 6) is 90/65 ksi: 25.7, 25.7, 24.8, 23.9, 23.3, 23.1."
+    },
+    "SB-575-C276": {
+      "desc": "54Ni-16Mo-15Cr (Alloy C-276) plate, sheet, strip, solution annealed", "spec": "SB-575", "grade": "C-276", "uns": "N10276", "p_no": "43",
+      "table": "1B", "line": 19, "line_G5": 18, "pages": [254, 255, 256, 257],
+      "tensile_ksi": 100, "yield_ksi": 41, "max_T_VIII1_F": 1250, "notes": "T15 (line 18: G5, T14)", "ext_press_chart": "NFN-10",
+      "creep_from_F": 1050,
+      "S_ksi":    {"100": 27.3, "200": 24.9, "300": 23.0, "400": 21.3, "500": 19.9, "600": 18.7, "650": 18.2, "700": 17.8,
+                   "750": 17.4, "800": 17.1, "850": 16.9, "900": 16.7, "950": 16.6, "1000": 16.5, "1050": 16.5,
+                   "1100": 15.0, "1150": 12.2, "1200": 9.8, "1250": 7.8},
+      "S_ksi_G5": {"100": 27.3, "200": 27.3, "300": 27.3, "400": 27.3, "500": 26.9, "600": 25.2, "650": 24.6, "700": 24.0,
+                   "750": 23.5, "800": 23.1, "850": 22.8, "900": 22.6, "950": 22.4, "1000": 22.3, "1050": 18.5,
+                   "1100": 15.0, "1150": 12.2, "1200": 9.8, "1250": 7.8}
+    },
+    "SB-265-Ti2": {
+      "desc": "Unalloyed titanium Grade 2 plate, sheet, strip, annealed", "spec": "SB-265", "grade": "2", "uns": "R50400", "p_no": "51",
+      "table": "1B", "line": 37, "pages": [262, 263, 264],
+      "tensile_ksi": 50, "yield_ksi": 40, "max_T_VIII1_F": 600, "notes": "", "ext_press_chart": "NFT-2",
+      "creep_from_F": null,
+      "S_ksi": {"100": 14.3, "150": 13.7, "200": 12.4, "250": 11.3, "300": 10.3, "350": 9.5, "400": 8.8, "450": 8.2,
+                "500": 7.6, "550": 7.0, "600": 6.5}
+    }
+  }
+}

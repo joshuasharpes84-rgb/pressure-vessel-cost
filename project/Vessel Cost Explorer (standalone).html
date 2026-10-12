@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vessel Cost Explorer</title>
+<script src="chart.umd.min.js"></script>
+<style>
+/*BEGIN THEME*/
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#1d2330; --muted:#5d6675; --line:#dfe3ea;
+  --accent:#1f6feb; --warn:#b54708; --warn-bg:#fff4e5; --bad:#b42318; --good:#067647;
+  --c1:#1f6feb; --c2:#12a594; --c3:#e5a50a; --c4:#8e55d9; --c5:#9aa4b2;
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 6l5 5 5-5' fill='none' stroke='%231f6feb' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1218; --panel:#171b23; --ink:#e6e9ef; --muted:#9aa3b2; --line:#2a303b;
+    --accent:#5b9dff; --warn:#f5a524; --warn-bg:#2b2112; --bad:#ff6b5f; --good:#3fd18b;
+    --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 6l5 5 5-5' fill='none' stroke='%235b9dff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1218; --panel:#171b23; --ink:#e6e9ef; --muted:#9aa3b2; --line:#2a303b;
+  --accent:#5b9dff; --warn:#f5a524; --warn-bg:#2b2112; --bad:#ff6b5f; --good:#3fd18b;
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 6l5 5 5-5' fill='none' stroke='%235b9dff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:18px 16px 6px;max-width:1280px;margin:0 auto;display:flex;gap:16px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+header h1{margin:0;font-size:22px}
+header p{margin:4px 0 0;color:var(--muted)}
+.unitsw{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.unitsw button{border:none;background:var(--panel);color:var(--muted);padding:6px 14px;font:inherit;font-weight:600;cursor:pointer}
+.unitsw button.on{background:var(--accent);color:#fff}
+#vce-tool{max-width:1280px;margin:0 auto;padding:0 16px 40px}
+/*END THEME*/
+/*BEGIN TOOL CSS*/
+#vce-tool{color:var(--ink)}
+#vce-tool *{box-sizing:border-box}
+#vce-tool section{padding:0;background:none}
+#vce-tool .tabs{margin:10px 0 0;display:flex;gap:6px;flex-wrap:wrap}
+#vce-tool .tabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:8px;cursor:pointer;font:inherit}
+#vce-tool .tabs button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#vce-tool .panes{padding-top:12px}
+#vce-tool .grid{display:grid;grid-template-columns:340px minmax(0,1fr);gap:14px}
+@media (max-width:900px){#vce-tool .grid{grid-template-columns:minmax(0,1fr)}}
+#vce-tool .card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:none;transform:none}
+#vce-tool .card:hover{box-shadow:none;transform:none}
+#vce-tool h2{font-size:15px;margin:0 0 10px;color:var(--ink);font-weight:700}
+#vce-tool h3{font-size:13px;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+#vce-tool label{display:block;margin:7px 0 2px;color:var(--muted);font-size:12.5px}
+#vce-tool input,#vce-tool select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:14px}
+/* dropdowns: bold accent chevron + accent-tinted border so they read as selectable */
+#vce-tool select{-webkit-appearance:none;appearance:none;cursor:pointer;background:var(--panel) var(--chev) no-repeat right 9px center/15px 15px;padding-right:34px;border-color:color-mix(in srgb,var(--accent) 45%,var(--line));font-weight:500}
+#vce-tool select:hover,#vce-tool select:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 20%,transparent)}
+#vce-tool .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#vce-tool .chk{display:flex;gap:6px;align-items:flex-start;margin-top:8px;color:var(--ink);font-size:13px}
+#vce-tool .chk input{width:auto;margin-top:3px}
+#vce-tool .hint{color:var(--muted);font-size:12px;font-weight:400}
+#vce-tool .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+#vce-tool .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+#vce-tool .kpi .v{font-size:20px;font-weight:600;color:var(--ink)}
+#vce-tool .kpi .l{color:var(--muted);font-size:12px}
+#vce-tool table{width:100%;border-collapse:collapse;font-size:13px}
+#vce-tool th,#vce-tool td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right}
+#vce-tool th:first-child,#vce-tool td:first-child{text-align:left}
+#vce-tool th{color:var(--muted);font-weight:600}
+#vce-tool tr.sel td{background:color-mix(in srgb,var(--accent) 12%,transparent)}
+#vce-tool tr.sub td{font-weight:600}
+#vce-tool .flags{margin:10px 0 0;padding:0;list-style:none}
+#vce-tool .flags li{background:var(--warn-bg);color:var(--warn);border-radius:6px;padding:6px 9px;margin:5px 0;font-size:12.5px}
+#vce-tool .chartbox{position:relative;height:320px}
+#vce-tool .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:1100px){#vce-tool .two{grid-template-columns:minmax(0,1fr)}}
+#vce-tool .bad{color:var(--bad)} #vce-tool .good{color:var(--good)}
+#vce-tool .note{color:var(--muted);font-size:12px;margin-top:8px}
+#vce-tool .tabpane{display:none}#vce-tool .tabpane.on{display:block}
+#vce-tool ol,#vce-tool ul:not(.flags){padding-left:22px;margin:8px 0}
+#vce-tool p{margin:8px 0}
+/* collapsible cards: filled chevron badge + Show/Hide pill so they read as expandable */
+#vce-tool details.fold{align-self:start;margin:0}
+#vce-tool details.fold>summary{list-style:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;color:var(--ink);
+  background:none;border:none;border-radius:6px;padding:2px 0;margin:0;font-size:inherit;font-weight:inherit;position:static;box-shadow:none;user-select:none}
+#vce-tool details.fold>summary::-webkit-details-marker{display:none}
+#vce-tool details.fold>summary::marker{content:""}
+#vce-tool details.fold>summary h2{margin:0;flex:1 1 auto}
+#vce-tool details.fold>summary::before{content:"";flex:0 0 24px;width:24px;height:24px;border-radius:50%;transition:transform .15s;
+  background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 3l5 5-5 5' fill='none' stroke='white' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center/13px 13px}
+#vce-tool details.fold[open]>summary::before{transform:rotate(90deg)}
+#vce-tool details.fold>summary::after{content:"Show";order:2;font-size:12px;font-weight:600;color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:999px;padding:2px 10px}
+#vce-tool details.fold[open]>summary::after{content:"Hide"}
+#vce-tool details.fold>summary:hover{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+#vce-tool details.fold>summary .hint{order:3;flex-basis:100%;padding-left:34px}
+#vce-tool details.fold[open]>summary{margin-bottom:10px}
+#vce-tool .scroll{overflow-x:auto}
+#vce-tool code{font-size:12px}
+/*END TOOL CSS*/
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Vessel Cost Explorer</h1>
+    <p>Pressure vessel wall thickness, MAWP/MAWT, material selection and installed cost vs. diameter. FEL-1 proof of concept.</p>
+  </div>
+  <!-- Standalone unit switch. On the portfolio site the build drops this and the site-wide
+       US/SI toggle fires the same 'site-units-change' event. -->
+  <div class="unitsw" role="group" aria-label="Unit system">
+    <button type="button" class="on" data-sys="us">US</button><button type="button" data-sys="si">SI</button>
+  </div>
+</header>
+<script>
+document.querySelectorAll(".unitsw button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".unitsw button").forEach(x=>x.classList.toggle("on",x===b));
+  window.dispatchEvent(new CustomEvent("site-units-change",{detail:{sys:b.dataset.sys}}));
+}));
+</script>
+<!--BEGIN TOOL BODY-->
+<div id="vce-tool">
+<div class="tabs">
+  <button class="on" data-tab="t-vessel">Vessel vs. diameter</button>
+  <button data-tab="t-nh3">Case study: Haber-Bosch loop pressure</button>
+  <button data-tab="t-basis">Method &amp; sources</button>
+</div>
+<div class="panes">
+
+<!-- ======================= TAB 1: VESSEL ======================= -->
+<section id="t-vessel" class="tabpane on">
+<div class="grid">
+  <div class="card">
+    <h2>Inputs</h2>
+    <label>Service or case study</label>
+    <select id="service"></select>
+    <div class="hint" id="serviceNote"></div>
+
+    <h3>Geometry</h3>
+    <label>Orientation</label>
+    <select id="orient"><option value="V">Vertical</option><option value="H">Horizontal</option></select>
+    <div class="row">
+      <div><label>Diameter ID (<span class="u" data-k="ft"></span>)</label><input id="D" type="number" step="0.5" value="6"></div>
+      <div><label>Length T/T (<span class="u" data-k="ft"></span>)</label><input id="L" type="number" step="1" value="20"></div>
+    </div>
+    <div class="row">
+      <div><label>Volume (<span class="u" data-k="ft3"></span>)</label><input id="Vol" type="text" readonly></div>
+      <div><label>L/D</label><input id="LD" type="text" readonly></div>
+    </div>
+    <label>Diameter sweep basis</label>
+    <select id="hold">
+      <option value="S">Scale-up: L/D held (volume grows with D³)</option>
+      <option value="L">Length held</option>
+      <option value="V">Volume held (find cheapest L/D)</option>
+    </select>
+    <div class="row">
+      <div><label>Sweep D min (<span class="u" data-k="ft"></span>)</label><input id="Dmin" type="number" step="0.5"></div>
+      <div><label>Sweep D max (<span class="u" data-k="ft"></span>)</label><input id="Dmax" type="number" step="0.5"></div>
+    </div>
+    <label class="chk"><input id="autoRange" type="checkbox" checked> Auto sweep range around this design</label>
+    <div class="hint" id="rangeNote"></div>
+
+    <h3>Process conditions</h3>
+    <div class="row">
+      <div><label>Operating P (<span class="u" data-k="psig"></span>)</label><input id="P" type="number" step="10" value="150"></div>
+      <div><label>Operating T (<span class="u" data-k="F"></span>)</label><input id="T" type="number" step="10" value="300"></div>
+    </div>
+    <div class="hint" id="siEcho"></div>
+
+    <h3>Material of construction</h3>
+    <label>Material</label>
+    <select id="mat"></select>
+    <div class="row">
+      <div><label>Design life (yr)</label><input id="life" type="number" step="1" value="20"></div>
+      <div><label>Corrosion rate (mpy)</label><input id="rateOv" type="number" step="0.5"></div>
+    </div>
+    <div class="hint" id="rateNote"></div>
+    <label class="chk"><input id="credit" type="checkbox" checked> Credit minimum-thickness surplus toward corrosion allowance</label>
+    <div class="hint">Off = Seider convention (CA added on top of min. thickness). On = Coulson §13.4.8 convention (min. thickness includes CA). Pressure thickness is never counted as CA.</div>
+    <label class="chk"><input id="g5" type="checkbox"> Use higher (Note G5) stresses for austenitic / Ni alloys</label>
+  </div>
+
+  <div>
+    <div class="kpis" id="kpis"></div>
+    <div class="two">
+      <div class="card"><h2>Installed cost vs. diameter <span class="hint" id="chart1sub"></span></h2><div class="chartbox"><canvas id="c1"></canvas></div></div>
+      <div class="card"><h2>Material comparison vs. diameter</h2><div class="chartbox"><canvas id="c2"></canvas></div>
+        <div class="note">Solid line = acceptable for the service. Materials excluded by the service screen are not plotted. ● = cheapest at each D.</div></div>
+    </div>
+    <div class="two" style="margin-top:14px">
+      <details class="card fold"><summary><h2>Mechanical design at D = <span id="dEcho"></span></h2><span class="hint" id="mechSum"></span></summary><div id="mech"></div><ul class="flags" id="flags"></ul></details>
+      <details class="card fold"><summary><h2>Cost build-up (itemized installation)</h2><span class="hint" id="costSum"></span></summary><div id="costTable"></div></details>
+    </div>
+    <div class="card" style="margin-top:14px"><h2>Material screen at this diameter</h2><div class="scroll" id="matTable"></div>
+      <div class="note">Corrosion rates in the service table are illustrative FEL-1 screening values (order-of-magnitude, typical handbook ranges), not from a corrosion database. Rating per Perry's 9th Table 25-3: ✓ &lt; 2 mpy, △ 2–16 mpy, ✗ ≥ 16 mpy. Localized-attack / cracking mechanisms exclude the material outright; a corrosion allowance cannot fix them.</div></div>
+  </div>
+</div>
+</section>
+
+<!-- ======================= TAB 2: HABER-BOSCH ======================= -->
+<section id="t-nh3" class="tabpane">
+<div class="grid">
+  <div class="card">
+    <h2>Loop basis</h2>
+    <div class="hint">Anchored on Design\Ammonia Process (400 MTPD, makeup 578 mol/s from 25 bar, V-501 at −10 °C, K = 0.107 m/s knock-out sizing). Design case: 150 bar loop, recycle ratio 5 (Ammonia Plant Memoir, as published on the portfolio site).</div>
+    <div class="row">
+      <div><label>NH₃ production (MTPD)</label><input id="h_mtpd" type="number" value="400"></div>
+      <div><label>Makeup supply P (bar)</label><input id="h_p0" type="number" value="25"></div>
+    </div>
+    <div class="row">
+      <div><label>Loop P min (bar)</label><input id="h_pmin" type="number" value="60"></div>
+      <div><label>Loop P max (bar)</label><input id="h_pmax" type="number" value="250"></div>
+    </div>
+    <div class="row">
+      <div><label>Converter outlet T (°C)</label><input id="h_tout" type="number" value="450"></div>
+      <div><label>Approach to equilibrium (–)</label><input id="h_app" type="number" step="0.05" value="0.6"></div>
+    </div>
+    <div class="row">
+      <div><label>Inerts in loop gas (mol frac)</label><input id="h_inert" type="number" step="0.01" value="0.10"></div>
+      <div><label>Separator T (°C)</label><input id="h_tsep" type="number" value="-10"></div>
+    </div>
+    <div class="row">
+      <div><label>Space velocity GHSV (h⁻¹, at STP)</label><input id="h_gh" type="number" step="1000" value="10000"></div>
+      <div><label>Converter L/D</label><input id="h_ld" type="number" step="0.5" value="5"></div>
+    </div>
+    <div class="row">
+      <div><label>Converter shell T (°C)</label><input id="h_tshell" type="number" value="280"></div>
+      <div><label>Compressor poly. eff.</label><input id="h_eta" type="number" step="0.01" value="0.75"></div>
+    </div>
+    <div class="row">
+      <div><label>Operating h/yr</label><input id="h_hrs" type="number" value="8000"></div>
+      <div><label>Capital charge (1/yr)</label><input id="h_crf" type="number" step="0.01" value="0.15"></div>
+    </div>
+    <label>Loop ΔP for circulator (bar)</label><input id="h_dp" type="number" step="1" value="8">
+
+    <h3>Compressor drive &amp; energy</h3>
+    <label>Drive (makeup compressor + circulator)</label>
+    <select id="h_drive">
+      <option value="steam">Steam turbine on plant HP steam (reformer integrated)</option>
+      <option value="motor">Electric motor on grid power</option>
+    </select>
+    <div class="row">
+      <div><label>Grid power ($/kWh)</label><input id="h_elec" type="number" step="0.01" value="0.07"></div>
+      <div><label>Turbine steam rate (kg/kWh)</label><input id="h_ssc" type="number" step="0.05" value="3.45"></div>
+    </div>
+    <div class="row">
+      <div><label>Share of turbine steam from recovered heat (%)</label><input id="h_int" type="number" step="10" min="0" max="100" value="100"></div>
+      <div><label>Recovered steam value ($/t)</label><input id="h_vrec" type="number" step="0.5" value="0.53"></div>
+    </div>
+    <label>Make-up (fired / purchased) steam value ($/t)</label><input id="h_vmk" type="number" step="1" value="17.6">
+    <div class="hint" id="h_energyNote"></div>
+    <div class="note">Converter shell: SA-387 22 Cl.2 (2¼Cr-1Mo, hot hydrogen). Separator: SA-516-70. Both use the Vessel tab's engine (thickness → weight → Seider cost → itemized installation). Compressors: Seider Eq. 16.36 centrifugal with drive factor F<sub>D</sub> (motor 1.00, steam turbine 1.15), installed ×2.15.</div>
+  </div>
+  <div>
+    <div class="kpis" id="h_kpis"></div>
+    <div class="two">
+      <div class="card"><h2>Annualized cost vs. loop pressure</h2><div class="chartbox"><canvas id="h1"></canvas></div></div>
+      <div class="card"><h2>Loop response vs. pressure</h2><div class="chartbox"><canvas id="h2"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h2>Pressure sweep table</h2><div class="scroll" id="h_table"></div>
+      <div class="note" id="h_note"></div></div>
+  </div>
+</div>
+</section>
+
+<!-- ======================= TAB 3: BASIS ======================= -->
+<section id="t-basis" class="tabpane">
+<div class="card">
+<h2>Calculation chain</h2>
+<ol>
+<li><b>Design conditions</b> (Seider §16.5): P<sub>d</sub> = 10 psig if P<sub>o</sub> ≤ 5 psig; exp{0.60608 + 0.91615 ln P<sub>o</sub> + 0.0015655 (ln P<sub>o</sub>)²} for 5–1000 psig; 1.1·P<sub>o</sub> above 1000 psig. T<sub>d</sub> = T<sub>o</sub> + 50 °F.</li>
+<li><b>Allowable stress S(T<sub>d</sub>)</b>: ASME II-D 2013 Table 1A/1B, Section VIII-1 column, linear interpolation. Local file <code>asme_iid_stress.json</code> (page refs per material). Blank above the material's VIII-1 temperature limit.</li>
+<li><b>Pressure thickness</b>: UG-27 t<sub>p</sub> = P<sub>d</sub>R/(SE − 0.6P<sub>d</sub>) (= Seider 16.60); Appendix 1-2 thick-wall form t = R(e<sup>P/SE</sup> − 1) when P &gt; 0.385SE. E = 0.85 (spot RT) up to 1.25 in, 1.0 above (Seider).</li>
+<li><b>Vertical wind/seismic</b> (Seider 16.62): t<sub>w</sub> = 0.22(D<sub>o</sub>+18)L²/(S D<sub>o</sub>²); t<sub>v</sub> = t<sub>p</sub> + t<sub>w</sub>/2 (average of top and bottom).</li>
+<li><b>Minimum thickness</b> (Seider): ¼ in to 4 ft, 5/16 to 6 ft, 3/8 to 8 ft, 7/16 to 10 ft, ½ in to 12 ft; +1/16 in per 2 ft above 12 ft (extrapolated).</li>
+<li><b>Corrosion allowance</b> = rate × design life (min 1/16 in). Credit toggle: off → t = max(t<sub>p</sub>, t<sub>min</sub>) + CA (Seider); on → t = max(t<sub>p</sub> + CA, t<sub>min</sub>) (Coulson, minimum includes CA). Round up to plate: 1/16 in steps to ½ in, 1/8 in to 2 in, ¼ in above.</li>
+<li><b>MAWP</b>: UG-27 inverted on the corroded thickness (t<sub>nom</sub> − CA) at T<sub>d</sub>. <b>MAWT</b>: highest temperature at which S(T) still gives MAWP ≥ P<sub>d</sub> on the corroded wall, capped at the VIII-1 limit. <b>Corrosion life</b> = (t<sub>nom</sub> − t<sub>p</sub>)/rate: all metal above the pressure requirement, including min-thickness and plate-rounding surplus.</li>
+<li><b>Weight</b> (Seider 16.59): W = π(D<sub>i</sub>+t)(L+0.8D<sub>i</sub>)t·ρ with ρ = 0.284 lb/in³ (Seider's cost basis; heads same thickness as shell). Actual shipping mass uses the material's own density.</li>
+<li><b>Purchase cost</b> (Seider 16.52–16.56, CE 567): C<sub>P</sub> = F<sub>M</sub>C<sub>V</sub> + C<sub>PL</sub>. Vertical C<sub>V</sub> = exp{7.1390 + 0.18255 lnW + 0.02297(lnW)²}, C<sub>PL</sub> = 410D<sup>0.7396</sup>L<sup>0.70684</sup>; horizontal C<sub>V</sub> = exp{5.6336 + 0.4599 lnW + 0.00582(lnW)²}, C<sub>PL</sub> = 2275D<sup>0.2094</sup>. F<sub>M</sub> from Seider Table 16.26.</li>
+<li><b>Installation, itemized</b>: Guthrie line items (Seider Table 16.10: piping 0.456, concrete 0.051, steel 0.031, instruments 0.102, electrical 0.020, insulation 0.049, paint 0.005, erection 0.554, setting 0.076, freight 0.080, overhead 0.571, engineering 0.296 × C<sub>P</sub>; sum 2.291) scaled so they total the vessel bare-module factor F<sub>BM</sub> − 1 (Seider Table 16.11: vertical 4.16, horizontal 3.05). Installation is charged on the <i>carbon-steel</i> purchase cost (Seider Eq. 16.12). <b>Assumption:</b> vessel line items share the heat-exchanger split.</li>
+<li><b>Contingency + fee</b>: 15% + 3% (Seider, on direct permanent investment ≈ bare-module cost for one item).</li>
+<li><b>Cost year</b>: escalated CE 567 → 800 (single fixed index; relative comparisons are the point of this tool).</li>
+</ol>
+<h2>Service screening</h2>
+<p>Follows the Plant Resources\Materials of Construction methodology (per-mechanism, UNS-named, Perry's 9th Table 25-3 ratings, FEL-1 screening only). Corrosion rates are illustrative placeholders pending a sourced corrosion database (NACE/MTI data are not on disk). Hot-hydrogen limits are an approximate reading of API 941 Nelson curves at high H₂ partial pressure. Verify before use.</p>
+<h2>Haber-Bosch case study</h2>
+<p>Equilibrium: Gillespie-Beattie K<sub>p</sub> (atm⁻¹, ½N₂ + 3/2H₂ ⇌ NH₃), ideal gas (fugacity corrections neglected, which understates conversion at high P), 3:1 H₂:N₂ plus inerts. Per-pass outlet NH₃ = inlet + approach × (equilibrium − inlet). Inlet NH₃ = NH₃ vapour pressure at the separator T ÷ loop P. Loop flow F = ξ(1+y<sub>out</sub>)/(y<sub>out</sub> − y<sub>in</sub>). Converter catalyst volume = converter inlet flow at STP ÷ GHSV (standard-condition space velocity, as industrial converters are rated); vessel volume = 1.3 × catalyst. Because the catalyst volume does not shrink with pressure, wall metal (∝ P × V) and converter capital rise with loop pressure. A residence time at actual conditions would make V ∝ 1/P and cancel that effect exactly (pV = nRT). Separator: Souders-Brown K = 0.107 m/s (Ammonia Process knock-out basis), L/D 3.5. Makeup compressor: intercooled (40 °C), equal ratios ≤ 3 per stage, ideal-gas polytropic; circulator lifts loop flow by the loop ΔP. Compressor cost: Seider Eq. 16.36 centrifugal C<sub>B</sub> = exp{9.1553 + 0.63 ln P<sub>C</sub>} (hp, CE 567, includes motor) × F<sub>D</sub> (1.15 for a steam-turbine drive, Eq. 16.35), installed ×2.15. <b>Compression energy</b>: electric drive = grid price ÷ 0.95 motor efficiency; steam-turbine drive = steam rate × blended steam value, where the blend is the share of turbine steam raised from recovered reformer convection-section / loop WHB heat (default $0.53/t, its boiler-feed-water cost, i.e. surplus heat with no other use) vs make-up steam that must be fired or bought (default $17.60/t, Seider Table 17.1, 450 psig). Default steam rate 3.45 kg/kWh: condensing turbine, 105 bar / 510 °C (Ammonia Process Memoir HP header) to 0.10 bar, 80% isentropic (IAPWS-95); a back-pressure turbine to 4.5 bar needs ≈ 5.9 kg/kWh. Integration only pays when the steam is genuinely surplus: if it could otherwise run a turbo-generator, its value approaches the grid price and the steam drive saves little. The recovered-steam supply is not capped (no plant steam balance). Refrigeration duty is not included. Proof of concept: trends, not a design.</p>
+<h2>Sources on disk</h2>
+<ul>
+<li>ASME II-D 2013 (Customary): Vessel Scale Up folder.</li>
+<li>Seider, Seader, Lewin &amp; Widagdo, Ch. 16: FEL Projects\Economics\Seider.pdf (PDF p.476–477, 500–503).</li>
+<li>Coulson &amp; Richardson Vol. 6 (Sinnott) §13.4.8: Textbooks (Level 1)\Process &amp; Plant Design.</li>
+<li>Meyers, Handbook for Petrochemical Production Processes: Textbooks (Level 1)\Process-Specific References. Preset conditions per chapter noted in the preset hint.</li>
+</ul>
+</div>
+</section>
+</div>
+</div>
+<!--END TOOL BODY-->
+
+<div id="errbar" style="display:none;position:fixed;left:0;right:0;bottom:0;background:#b42318;color:#fff;padding:8px 16px;font:13px monospace;z-index:9"></div>
+<script>
+window.addEventListener("error", e => { const b=document.getElementById("errbar"); b.style.display="block"; b.textContent += "Error: " + e.message + " (line " + e.lineno + ")  "; });
+if (typeof Chart === "undefined") document.addEventListener("DOMContentLoaded", ()=>{ const b=document.getElementById("errbar"); b.style.display="block"; b.textContent="Chart.js failed to load (chart.umd.min.js must sit next to this HTML file). Calculations still run; charts are disabled."; });
+</script>
+<script>/*BEGIN TOOL JS*/
+"use strict";
+// ============================================================================
+// Data
+// ============================================================================
+const STRESS = /*BEGIN STRESS_DATA*/{"_source": "ASME BPVC Section II, Part D (Customary), 2013 edition. Table 1A (ferrous) / Table 1B (nonferrous): Maximum Allowable Stress Values S, Section VIII Division 1 column. Local copy: Vessel Scale Up\\Asme-Section-II-materials-part-d-properties-customary-2013-www.fouladline.com.pdf (also in Plant Resources\\Materials of Construction\\Reference Material\\). The PDF is a scan with no text layer; values were transcribed by visual reading of the page images on 2026-09-29.", "_page_convention": "pdf_page = printed_page + 49 throughout Tables 1A/1B. Each line is spread over 4 pages: identity (spec/grade/UNS), tensile/yield/max-temperature limits, stresses -20..900 F, stresses 950..1650 F (1B: 950..1800 F). 'pages' lists the printed page numbers of that group.", "_units": "S in ksi; temperatures in deg F (metal temperature 'not exceeding'). The first key '100' is the -20 to 100 F column. Linear interpolation between tabulated temperatures is permitted (II-D Subpart 1 guideline).", "_italics": "Values in italics in the source are time-dependent (creep-governed). 'creep_from_F' records the first italic column.", "_G5": "Austenitic/Ni-alloy lines come in pairs. Higher values carry Note G5 (permit up to ~90% of yield at temperature; may cause dimensional change, so not recommended for flanges or gasketed joints). Lower values are the default here ('S_ksi'); the G5 values are kept as 'S_ksi_G5'.", "materials": {"SA-285-C": {"desc": "Carbon steel plate", "spec": "SA-285", "grade": "C", "uns": "K02801", "p_no": "1-1", "table": "1A", "line": 6, "pages": [10, 11, 12, 13], "tensile_ksi": 55, "yield_ksi": 30, "max_T_VIII1_F": 900, "notes": "G10, S1, T2", "ext_press_chart": "CS-2", "creep_from_F": 750, "S_ksi": {"100": 15.7, "150": 15.7, "200": 15.7, "300": 15.7, "400": 15.7, "500": 15.7, "600": 15.3, "650": 14.8, "700": 14.3, "750": 13.0, "800": 10.8, "850": 8.7, "900": 5.9}}, "SA-516-70": {"desc": "Carbon steel plate", "spec": "SA-516", "grade": "70", "uns": "K02700", "p_no": "1-2", "table": "1A", "line": 6, "pages": [22, 23, 24, 25], "tensile_ksi": 70, "yield_ksi": 38, "max_T_VIII1_F": 1000, "notes": "G10, S1, T2", "ext_press_chart": "CS-2", "creep_from_F": 750, "S_ksi": {"100": 20.0, "150": 20.0, "200": 20.0, "300": 20.0, "400": 20.0, "500": 20.0, "600": 19.4, "650": 18.8, "700": 18.1, "750": 14.8, "800": 12.0, "850": 9.3, "900": 6.7, "950": 4.0, "1000": 2.5}}, "SA-387-11-2": {"desc": "1-1/4Cr-1/2Mo-Si plate, Class 2", "spec": "SA-387", "grade": "11 Cl.2", "uns": "K11789", "p_no": "4-1", "table": "1A", "line": 33, "pages": [38, 39, 40, 41], "tensile_ksi": 75, "yield_ksi": 45, "max_T_VIII1_F": 1200, "notes": "S4, T3", "ext_press_chart": "CS-3", "creep_from_F": 850, "S_ksi": {"100": 21.4, "200": 21.4, "300": 21.4, "400": 21.4, "500": 21.4, "600": 21.4, "650": 21.4, "700": 21.4, "750": 21.4, "800": 21.4, "850": 20.2, "900": 13.7, "950": 9.3, "1000": 6.3, "1050": 4.2, "1100": 2.8, "1150": 1.9, "1200": 1.2}}, "SA-387-22-2": {"desc": "2-1/4Cr-1Mo plate, Class 2", "spec": "SA-387", "grade": "22 Cl.2", "uns": "K21590", "p_no": "5A-1", "table": "1A", "line": 18, "pages": [42, 43, 44, 45], "tensile_ksi": 75, "yield_ksi": 45, "max_T_VIII1_F": 1200, "notes": "S4, T4, W7, W9", "ext_press_chart": "CS-3", "creep_from_F": 900, "S_ksi": {"100": 21.4, "200": 21.4, "300": 20.9, "400": 20.6, "500": 20.5, "600": 20.4, "650": 20.2, "700": 20.0, "750": 19.7, "800": 19.3, "850": 18.7, "900": 15.8, "950": 11.4, "1000": 7.8, "1050": 5.1, "1100": 3.2, "1150": 2.0, "1200": 1.2}}, "SA-240-304L": {"desc": "18Cr-8Ni austenitic stainless plate", "spec": "SA-240", "grade": "304L", "uns": "S30403", "p_no": "8-1", "table": "1A", "line": 44, "line_G5": 43, "pages": [86, 87, 88, 89], "tensile_ksi": 70, "yield_ksi": 25, "max_T_VIII1_F": 1200, "notes": "G21, T6 (line 43: G5, G21, T4)", "ext_press_chart": "HA-3", "creep_from_F": 900, "S_ksi": {"100": 16.7, "200": 14.3, "300": 12.8, "400": 11.7, "500": 10.9, "600": 10.4, "650": 10.2, "700": 10.0, "750": 9.8, "800": 9.7, "850": 9.5, "900": 9.3, "950": 9.1, "1000": 7.8, "1050": 6.3, "1100": 5.1, "1150": 4.0, "1200": 3.2}, "S_ksi_G5": {"100": 16.7, "200": 16.7, "300": 16.7, "400": 15.8, "500": 14.7, "600": 14.0, "650": 13.7, "700": 13.5, "750": 13.3, "800": 13.0, "850": 12.8, "900": 11.9, "950": 9.9, "1000": 7.8, "1050": 6.3, "1100": 5.1, "1150": 4.0, "1200": 3.2}}, "SA-240-316L": {"desc": "16Cr-12Ni-2Mo austenitic stainless plate", "spec": "SA-240", "grade": "316L", "uns": "S31603", "p_no": "8-1", "table": "1A", "line": 10, "line_G5": 9, "pages": [74, 75, 76, 77], "tensile_ksi": 70, "yield_ksi": 25, "max_T_VIII1_F": 850, "notes": "G21 (line 9: G5, G21)", "ext_press_chart": "HA-4", "creep_from_F": null, "S_ksi": {"100": 16.7, "200": 14.2, "300": 12.7, "400": 11.7, "500": 10.9, "600": 10.4, "650": 10.2, "700": 10.0, "750": 9.8, "800": 9.6, "850": 9.4}, "S_ksi_G5": {"100": 16.7, "200": 16.7, "300": 16.7, "400": 15.7, "500": 14.8, "600": 14.0, "650": 13.7, "700": 13.5, "750": 13.2, "800": 12.9, "850": 12.7}}, "SA-240-2205": {"desc": "22Cr-5Ni-3Mo-N duplex stainless plate", "spec": "SA-240", "grade": "2205", "uns": "S32205", "p_no": "10H-1", "table": "1A", "line": 15, "pages": [134, 135, 136, 137], "tensile_ksi": 95, "yield_ksi": 65, "max_T_VIII1_F": 600, "notes": "G19", "ext_press_chart": "HA-5", "creep_from_F": null, "S_ksi": {"100": 27.1, "200": 27.1, "300": 26.2, "400": 25.2, "500": 24.6, "600": 24.3}, "_note": "600 F limit reflects 475 C (885 F) embrittlement of duplex. S31803 (same page, line 6) is 90/65 ksi: 25.7, 25.7, 24.8, 23.9, 23.3, 23.1."}, "SB-575-C276": {"desc": "54Ni-16Mo-15Cr (Alloy C-276) plate, sheet, strip, solution annealed", "spec": "SB-575", "grade": "C-276", "uns": "N10276", "p_no": "43", "table": "1B", "line": 19, "line_G5": 18, "pages": [254, 255, 256, 257], "tensile_ksi": 100, "yield_ksi": 41, "max_T_VIII1_F": 1250, "notes": "T15 (line 18: G5, T14)", "ext_press_chart": "NFN-10", "creep_from_F": 1050, "S_ksi": {"100": 27.3, "200": 24.9, "300": 23.0, "400": 21.3, "500": 19.9, "600": 18.7, "650": 18.2, "700": 17.8, "750": 17.4, "800": 17.1, "850": 16.9, "900": 16.7, "950": 16.6, "1000": 16.5, "1050": 16.5, "1100": 15.0, "1150": 12.2, "1200": 9.8, "1250": 7.8}, "S_ksi_G5": {"100": 27.3, "200": 27.3, "300": 27.3, "400": 27.3, "500": 26.9, "600": 25.2, "650": 24.6, "700": 24.0, "750": 23.5, "800": 23.1, "850": 22.8, "900": 22.6, "950": 22.4, "1000": 22.3, "1050": 18.5, "1100": 15.0, "1150": 12.2, "1200": 9.8, "1250": 7.8}}, "SB-265-Ti2": {"desc": "Unalloyed titanium Grade 2 plate, sheet, strip, annealed", "spec": "SB-265", "grade": "2", "uns": "R50400", "p_no": "51", "table": "1B", "line": 37, "pages": [262, 263, 264], "tensile_ksi": 50, "yield_ksi": 40, "max_T_VIII1_F": 600, "notes": "", "ext_press_chart": "NFT-2", "creep_from_F": null, "S_ksi": {"100": 14.3, "150": 13.7, "200": 12.4, "250": 11.3, "300": 10.3, "350": 9.5, "400": 8.8, "450": 8.2, "500": 7.6, "550": 7.0, "600": 6.5}}}}/*END STRESS_DATA*/;
+
+const CE_BASE = 567, CE_NOW = 800;
+const ESC = CE_NOW / CE_BASE;
+const RHO_STEEL = 0.284;              // lb/in^3, Seider cost basis
+
+// key -> II-D entry, Seider F_M, actual density (lb/in^3)
+const MATS = {
+  "SA-516-70":   {label:"Carbon steel SA-516-70",        FM:1.0, FMsrc:"Seider T16.26 carbon steel", rho:0.284},
+  "SA-285-C":    {label:"Carbon steel SA-285-C",         FM:1.0, FMsrc:"Seider T16.26 carbon steel", rho:0.284},
+  "SA-387-11-2": {label:"1¼Cr-½Mo SA-387 11 Cl.2",       FM:1.2, FMsrc:"Seider T16.26 low-alloy steel", rho:0.283},
+  "SA-387-22-2": {label:"2¼Cr-1Mo SA-387 22 Cl.2",       FM:1.2, FMsrc:"Seider T16.26 low-alloy steel", rho:0.283},
+  "SA-240-304L": {label:"304L SS SA-240",                FM:1.7, FMsrc:"Seider T16.26 SS 304", rho:0.289},
+  "SA-240-316L": {label:"316L SS SA-240",                FM:2.1, FMsrc:"Seider T16.26 SS 316", rho:0.289},
+  "SA-240-2205": {label:"2205 duplex SA-240",            FM:2.1, FMsrc:"ASSUMED = SS 316 (not in Seider T16.26)", rho:0.282},
+  "SB-575-C276": {label:"Alloy C-276 SB-575",            FM:3.9, FMsrc:"ASSUMED = Inconel-600 (C-276 not in Seider T16.26; likely low)", rho:0.321},
+  "SB-265-Ti2":  {label:"Titanium Gr 2 SB-265",          FM:7.7, FMsrc:"Seider T16.26 titanium", rho:0.163},
+};
+
+// Service screen. rate in mpy; maxT_F = exclusion above this T; why = mechanism note.
+// X = excluded outright (localized attack / cracking / unsuitable).
+const SERVICES = {
+  clean: {label:"Non-corrosive (dry hydrocarbon, clean gas)", m:{
+    "SA-516-70":{rate:1},"SA-285-C":{rate:1},"SA-387-11-2":{rate:0.5},"SA-387-22-2":{rate:0.5},
+    "SA-240-304L":{rate:0.1},"SA-240-316L":{rate:0.1},"SA-240-2205":{rate:0.1},"SB-575-C276":{rate:0.1},"SB-265-Ti2":{rate:0.1}}},
+  hydrogen: {label:"Hot hydrogen / syngas (dry)", m:{
+    "SA-516-70":{rate:1,maxT_F:450,why:"HTHA above ~450 °F (Nelson curve)"},
+    "SA-285-C":{rate:1,maxT_F:450,why:"HTHA above ~450 °F (Nelson curve)"},
+    "SA-387-11-2":{rate:0.5,maxT_F:950,why:"HTHA above ~950 °F (Nelson curve)"},
+    "SA-387-22-2":{rate:0.5,maxT_F:1050,why:"HTHA above ~1050 °F (Nelson curve)"},
+    "SA-240-304L":{rate:0.1},"SA-240-316L":{rate:0.1},"SA-240-2205":{rate:0.1},"SB-575-C276":{rate:0.1},
+    "SB-265-Ti2":{X:"Hydrogen embrittlement (hydriding) of titanium"}}},
+  wetco2: {label:"Wet CO₂ / carbonic-acid condensate", m:{
+    "SA-516-70":{rate:30},"SA-285-C":{rate:30},"SA-387-11-2":{rate:20},"SA-387-22-2":{rate:15},
+    "SA-240-304L":{rate:0.1},"SA-240-316L":{rate:0.1},"SA-240-2205":{rate:0.1},"SB-575-C276":{rate:0.1},"SB-265-Ti2":{rate:0.1}}},
+  chloride: {label:"Aqueous chlorides (aerated brine, ~3% NaCl)", m:{
+    "SA-516-70":{rate:10},"SA-285-C":{rate:10},"SA-387-11-2":{rate:10},"SA-387-22-2":{rate:10},
+    "SA-240-304L":{X:"Chloride pitting / crevice attack"},
+    "SA-240-316L":{rate:0.5,maxT_F:140,why:"Chloride SCC above ~140 °F"},
+    "SA-240-2205":{rate:0.2,maxT_F:212,why:"Pitting above ~212 °F"},
+    "SB-575-C276":{rate:0.1},"SB-265-Ti2":{rate:0.1}}},
+  h2so4: {label:"Dilute sulfuric acid (<10%)", m:{
+    "SA-516-70":{X:"Rapid general attack (>100 mpy)"},"SA-285-C":{X:"Rapid general attack (>100 mpy)"},
+    "SA-387-11-2":{X:"Rapid general attack"},"SA-387-22-2":{X:"Rapid general attack"},
+    "SA-240-304L":{rate:20},"SA-240-316L":{rate:8,maxT_F:120,why:"Active corrosion above ~120 °F"},
+    "SA-240-2205":{rate:4},"SB-575-C276":{rate:1},"SB-265-Ti2":{X:"Reducing acid attacks titanium"}}},
+  caustic: {label:"Caustic soda (≤50% NaOH)", m:{
+    "SA-516-70":{rate:1,maxT_F:140,why:"Caustic SCC above ~140 °F (no PWHT)"},
+    "SA-285-C":{rate:1,maxT_F:140,why:"Caustic SCC above ~140 °F (no PWHT)"},
+    "SA-387-11-2":{rate:1,maxT_F:140,why:"Caustic SCC above ~140 °F"},"SA-387-22-2":{rate:1,maxT_F:140,why:"Caustic SCC above ~140 °F"},
+    "SA-240-304L":{rate:1,maxT_F:250,why:"Caustic SCC above ~250 °F"},"SA-240-316L":{rate:1,maxT_F:250,why:"Caustic SCC above ~250 °F"},
+    "SA-240-2205":{rate:0.5},"SB-575-C276":{rate:0.5},"SB-265-Ti2":{rate:2,maxT_F:150,why:"Hot caustic attacks titanium"}}},
+  organic: {label:"Hot acetic / organic acids", m:{
+    "SA-516-70":{X:"Rapid general attack"},"SA-285-C":{X:"Rapid general attack"},
+    "SA-387-11-2":{X:"Rapid general attack"},"SA-387-22-2":{X:"Rapid general attack"},
+    "SA-240-304L":{rate:5},"SA-240-316L":{rate:1},"SA-240-2205":{rate:1},"SB-575-C276":{rate:0.5},"SB-265-Ti2":{rate:0.5}}},
+};
+
+// Presets. Conditions from Meyers, Handbook for Petrochemical Production Processes unless noted.
+const PRESETS = /*BEGIN PRESETS*/[
+ {
+  "name": "JM Oxo alcohols - hydroformylation reactor (245 barg)",
+  "note": "Meyers Ch. 8.1 (PDF p.102, printed 8.4): olefin + 50/50 CO/H2 at 245 bar(g), 95-180 C. Upper T used. Geometry assumed.",
+  "set": {
+   "orient": "V",
+   "D": 5,
+   "L": 30,
+   "P": 3553,
+   "T": 356,
+   "service": "hydrogen",
+   "mat": "auto",
+   "life": 20,
+   "rateOv": "",
+   "credit": true
+  }
+ },
+ {
+  "name": "Lurgi MegaMethanol - gas-cooled reactor shell (syngas)",
+  "note": "Meyers Ch. 7.1 (PDF p.97, printed 7.12-7.13): GCR shell holds catalyst, WCR inlet ~240 C, GCR outlet ~220 C. Loop pressure NOT stated in the handbook: 80 bar assumed (typical low-pressure methanol loop). Geometry assumed.",
+  "set": {
+   "orient": "V",
+   "D": 14,
+   "L": 35,
+   "P": 1160,
+   "T": 482,
+   "service": "hydrogen",
+   "mat": "auto",
+   "life": 20,
+   "rateOv": "",
+   "credit": true
+  }
+ },
+ {
+  "name": "Lurgi MegaMethanol - water-cooled reactor steam side",
+  "note": "Meyers Ch. 7.1 (PDF p.98, printed 7.14): reactor raises 50-60 bar steam; shell side is boiling BFW. 60 bar, 275 C (saturation) used. Geometry assumed.",
+  "set": {
+   "orient": "V",
+   "D": 14,
+   "L": 35,
+   "P": 870,
+   "T": 527,
+   "service": "clean",
+   "mat": "auto",
+   "life": 20,
+   "rateOv": "",
+   "credit": true
+  }
+ },
+ {
+  "name": "Ammonia Process - V-401 knock-out (wet CO2 syngas)",
+  "note": "Design\\Ammonia Process memoir: V-401 1.8 m ID, 27 bar, L/D 3.5 (Souders-Brown K 0.107). Service assumed wet CO2 condensate (upstream of CO2 removal); 40 C assumed.",
+  "set": {
+   "orient": "V",
+   "D": 5.9,
+   "L": 20.7,
+   "P": 392,
+   "T": 104,
+   "service": "wetco2",
+   "mat": "auto",
+   "life": 20,
+   "rateOv": "",
+   "credit": true
+  }
+ },
+ {
+  "name": "Generic - horizontal brine drum (chlorides, low P)",
+  "note": "Illustrative low-pressure case where minimum thickness governs: shows the min-thickness corrosion-credit toggle and the CS-vs-alloy crossover.",
+  "set": {
+   "orient": "H",
+   "D": 8,
+   "L": 24,
+   "P": 50,
+   "T": 120,
+   "service": "chloride",
+   "mat": "auto",
+   "life": 20,
+   "rateOv": "",
+   "credit": true
+  }
+ }
+]/*END PRESETS*/;
+
+// ============================================================================
+// Engine: mechanical design
+// ============================================================================
+function stressTable(matKey, g5){
+  const m = STRESS.materials[matKey];
+  const tbl = (g5 && m.S_ksi_G5) ? m.S_ksi_G5 : m.S_ksi;
+  const T = Object.keys(tbl).map(Number).sort((a,b)=>a-b);
+  return {T, S:T.map(t=>tbl[String(t)]), Tmax:m.max_T_VIII1_F};
+}
+function S_ksi(matKey, T_F, g5){
+  const {T,S,Tmax} = stressTable(matKey,g5);
+  if (T_F > Tmax) return null;
+  if (T_F <= T[0]) return S[0];
+  for (let i=0;i<T.length-1;i++) if (T_F <= T[i+1]) return S[i] + (S[i+1]-S[i])*(T_F-T[i])/(T[i+1]-T[i]);
+  return null;
+}
+function maxTempForStress(matKey, Sreq, g5){
+  const {T,S,Tmax} = stressTable(matKey,g5);
+  if (S[0] < Sreq) return null;
+  let best = T[0];
+  for (let i=0;i<T.length-1;i++){
+    if (S[i+1] >= Sreq){ best = T[i+1]; continue; }
+    if (S[i] > S[i+1]) best = T[i] + (S[i]-Sreq)*(T[i+1]-T[i])/(S[i]-S[i+1]);
+    break;
+  }
+  return Math.min(best, Tmax);
+}
+function designP(Po){
+  if (Po <= 5) return 10;
+  if (Po <= 1000){ const l = Math.log(Po); return Math.exp(0.60608 + 0.91615*l + 0.0015655*l*l); }
+  return 1.1*Po;
+}
+function tPressure(P, R, S, E){      // in; P,S psi; R in
+  if (P <= 0.385*S*E) return P*R/(S*E - 0.6*P);
+  return R*(Math.exp(P/(S*E)) - 1);  // App. 1-2 thick cylinder (approx. form)
+}
+function pFromT(t, R, S, E){
+  const p = S*E*t/(R + 0.6*t);
+  if (p <= 0.385*S*E) return p;
+  return S*E*Math.log((R+t)/R);
+}
+function tMinSeider(D_ft){
+  if (D_ft <= 4) return 0.25;
+  if (D_ft <= 6) return 5/16;
+  if (D_ft <= 8) return 3/8;
+  if (D_ft <= 10) return 7/16;
+  if (D_ft <= 12) return 0.5;
+  return 0.5 + Math.ceil((D_ft-12)/2)/16;
+}
+function roundPlate(t){
+  if (t <= 3/16) return 3/16;
+  if (t <= 0.5)  return Math.ceil(t*16 - 1e-9)/16;
+  if (t <= 2)    return Math.ceil(t*8 - 1e-9)/8;
+  return Math.ceil(t*4 - 1e-9)/4;
+}
+function roundUp16(t){ return Math.ceil(t*16 - 1e-9)/16; }
+
+// Full vessel calc. Returns object with mechanical + cost results, or {ok:false, reason}.
+function vessel(o){
+  // o: {orient, D, L, P, T, mat, rate, life, credit, g5}
+  const r = {inp:o, flags:[]};
+  const Di = o.D*12, R = Di/2, Lin = o.L*12;
+  r.Pd = designP(o.P); r.Td = o.T + 50;
+  if (o.P < 0) r.flags.push("Vacuum/external pressure not evaluated (Seider 16.63–16.65 not implemented).");
+  if (o.T < -20) r.flags.push("Below −20 °F: impact testing / MDMT check required (UCS-66), not evaluated.");
+  const S = S_ksi(o.mat, Math.max(r.Td,100), o.g5);
+  if (S === null){ return {ok:false, reason:`Design T ${r.Td.toFixed(0)} °F exceeds ${o.mat} VIII-1 limit ${STRESS.materials[o.mat].max_T_VIII1_F} °F`}; }
+  r.S = S*1000;
+  // weld efficiency: 0.85 unless pressure thickness > 1.25 in
+  let E = 0.85, tp = tPressure(r.Pd, R, r.S, E);
+  if (tp > 1.25){ E = 1.0; tp = tPressure(r.Pd, R, r.S, E); }
+  r.E = E; r.tp = tp; r.thick = r.Pd > 0.385*r.S*E;
+  if (r.thick) r.flags.push("Thick-wall regime (P > 0.385SE): Appendix 1-2 formula used; forged/layered construction likely in practice.");
+  // wind / seismic (vertical)
+  r.tw = 0;
+  if (o.orient === "V"){
+    const Do = Di + 2*tp;
+    r.tw = 0.22*(Do+18)*Lin*Lin/(r.S*Do*Do);
+  }
+  const tpv = tp + r.tw/2;
+  r.tmin = tMinSeider(o.D);
+  r.CA = Math.max(1/16, roundUp16(o.rate*o.life/1000));
+  const tReq = o.credit ? Math.max(tpv + r.CA, r.tmin) : Math.max(tpv, r.tmin) + r.CA;
+  r.tReq = tReq; r.t = roundPlate(tReq);
+  r.governs = (tpv + (o.credit ? r.CA : 0) >= r.tmin) ? (r.tw/2 > 0.1*tp ? "pressure + wind" : "pressure") : "minimum thickness";
+  // MAWP / MAWT on corroded wall
+  const tc = r.t - r.CA;
+  r.MAWP = pFromT(tc, R, r.S, E);
+  const Sreq = r.Pd*(R + 0.6*tc)/(E*tc);           // psi needed at P_d
+  r.MAWT = maxTempForStress(o.mat, Sreq/1000, o.g5);
+  // corrosion life: all metal above pressure requirement
+  r.surplus = r.t - tpv;                           // in
+  r.lifeYr = o.rate > 0 ? r.surplus*1000/o.rate : Infinity;
+  r.freeCA = Math.max(0, r.surplus - r.CA);        // metal beyond specified CA
+  // weight
+  r.W = Math.PI*(Di + r.t)*(Lin + 0.8*Di)*r.t*RHO_STEEL;
+  r.Wact = r.W*MATS[o.mat].rho/RHO_STEEL;
+  // cost (Seider CE 567 -> escalated)
+  const lw = Math.log(r.W);
+  let CV, CPL, FBM, wlo, whi;
+  if (o.orient === "V"){
+    CV = Math.exp(7.1390 + 0.18255*lw + 0.02297*lw*lw);
+    CPL = 410*Math.pow(o.D,0.73960)*Math.pow(o.L,0.70684);
+    FBM = 4.16; wlo = 4200; whi = 1e6;
+    if (o.D<3||o.D>21||o.L<12||o.L>40) r.flags.push("Platform/ladder correlation extrapolated (vertical: 3–21 ft D, 12–40 ft L).");
+  } else {
+    CV = Math.exp(5.6336 + 0.4599*lw + 0.00582*lw*lw);
+    CPL = 2275*Math.pow(o.D,0.2094);
+    FBM = 3.05; wlo = 1000; whi = 920000;
+    if (o.D<3||o.D>12) r.flags.push("Platform/ladder correlation extrapolated (horizontal: 3–12 ft D).");
+  }
+  if (r.W<wlo||r.W>whi) r.flags.push(`Weight ${fmt(r.W,0)} lb outside Seider range ${fmt(wlo,0)}–${fmt(whi,0)} lb (extrapolated).`);
+  const FM = MATS[o.mat].FM;
+  r.FM = FM;
+  r.CVm = FM*CV*ESC; r.CPL = CPL*ESC;
+  r.CPcs = (CV + CPL)*ESC;                          // carbon-steel basis
+  r.CP = (FM*CV + CPL)*ESC;                         // actual material
+  r.FBM = FBM;
+  const k = (FBM - 1)/2.291;
+  const items = [
+    ["Piping (materials)",0.456,"mat"],["Concrete",0.051,"mat"],["Structural steel",0.031,"mat"],
+    ["Instruments & controls",0.102,"mat"],["Electrical",0.020,"mat"],["Insulation",0.049,"mat"],["Paint",0.005,"mat"],
+    ["Erection labour",0.554,"lab"],["Setting labour",0.076,"lab"],
+    ["Freight, insurance, taxes",0.080,"ind"],["Construction overhead",0.571,"ind"],["Contractor engineering",0.296,"ind"],
+  ];
+  r.items = items.map(([n,f,g])=>({name:n, group:g, cost:f*k*r.CPcs}));
+  r.inst = {mat:0,lab:0,ind:0};
+  r.items.forEach(i=>r.inst[i.group]+=i.cost);
+  r.CBM = r.CP + r.inst.mat + r.inst.lab + r.inst.ind;
+  r.cont = 0.18*r.CBM;
+  r.total = r.CBM + r.cont;
+  r.ok = true;
+  return r;
+}
+
+// Screen a material for a service at T. Returns {ok, rate, why, rating}
+const RATE_DEFAULT = 6.25;           // mpy; = Seider's 1/8 in CA over 20 yr, used when no service is chosen
+function screen(service, mat, T_F, rateOv){
+  const hasOv = rateOv !== null && !isNaN(rateOv);
+  if (!service) return {ok:true, rate: hasOv ? rateOv : RATE_DEFAULT, why:"", rating:"–"};
+  const e = SERVICES[service].m[mat];
+  if (!e) return {ok:false, why:"No data"};
+  if (e.X) return {ok:false, why:e.X, rating:"✗"};
+  if (e.maxT_F !== undefined && T_F > e.maxT_F) return {ok:false, why:e.why, rating:"✗"};
+  const rate = hasOv ? rateOv : e.rate;
+  const rating = rate < 2 ? "✓" : rate < 16 ? "△" : "✗";
+  if (rating === "✗") return {ok:false, rate, why:`${rate} mpy ≥ 16 mpy: CA not practical`, rating};
+  return {ok:true, rate, why:e.why || "", rating};
+}
+
+// ============================================================================
+// UI helpers
+// ============================================================================
+// PFX: element-id prefix. "" here; the portfolio build sets "vce-" so ids cannot collide with other calculators.
+const PFX = "";
+const $ = id => document.getElementById(PFX+id);
+function fmt(x, d=2){ return (x===null||x===undefined||!isFinite(x)) ? "–" : x.toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function money(x){ if(!isFinite(x)) return "–"; if (Math.abs(x)>=1e6) return "$"+(x/1e6).toFixed(2)+"M"; return "$"+Math.round(x/1000).toLocaleString()+"k"; }
+function frac(t){ const n = Math.round(t*16); const w = Math.floor(n/16), r = n%16; if(!r) return `${w} in`; const g = (a,b)=>b?g(b,a%b):a; const k=g(r,16); return `${w?w+" ":""}${r/k}/${16/k} in`; }
+function css(v){ return getComputedStyle(document.getElementById("vce-tool")).getPropertyValue(v).trim(); }
+
+// ---- Units. The engine is US customary throughout; SI only converts at the input/output boundary.
+// Driven by the 'site-units-change' event (portfolio site-wide toggle, or this page's own switch).
+let UNITS = "us";
+const UCONV = {   // kind: [US label, SI label, US->SI, SI->US, input step US, input step SI]
+  ft:   ["ft","m",       v=>v*0.3048,     v=>v/0.3048,     0.5, 0.1],
+  in:   ["in","mm",      v=>v*25.4,       v=>v/25.4],
+  psig: ["psig","kPa(g)",v=>v*6.894757,   v=>v/6.894757,   10, 50],
+  psi:  ["psi","MPa",    v=>v*0.006894757,v=>v/0.006894757],
+  F:    ["°F","°C",      v=>(v-32)/1.8,   v=>v*1.8+32,     10, 5],
+  lb:   ["lb","kg",      v=>v*0.45359237, v=>v/0.45359237],
+  ft3:  ["ft³","m³",     v=>v*0.02831685, v=>v/0.02831685],
+};
+const INPUT_KIND = {D:"ft", L:"ft", Dmin:"ft", Dmax:"ft", P:"psig", T:"F"};
+const ulab = k => UCONV[k][UNITS==="us"?0:1];
+const toDisp = (k,v) => UNITS==="us" ? v : UCONV[k][2](v);
+// formatted value + unit; dSI defaults to dUS
+function u(k, v, dUS=0, dSI=dUS){ return (v===null||v===undefined||!isFinite(v)) ? "–" : fmt(toDisp(k,v), UNITS==="us"?dUS:dSI)+" "+ulab(k); }
+// plate thickness: fractions of an inch in US, mm in SI
+function thk(t){ return UNITS==="us" ? frac(t) : fmt(t*25.4,1)+" mm"; }
+function numUS(id){ const v = +$(id).value; return UNITS==="us" ? v : UCONV[INPUT_KIND[id]][3](v); }
+function setUS(id, vUS){ const v = toDisp(INPUT_KIND[id], vUS); $(id).value = UNITS==="us" ? +v.toFixed(2) : +v.toPrecision(6); }
+function applyUnitLabels(){
+  document.querySelectorAll("#vce-tool .u[data-k]").forEach(e=>e.textContent = ulab(e.dataset.k));
+  for (const [id,k] of Object.entries(INPUT_KIND)) if (UCONV[k][4]) $(id).step = UCONV[k][UNITS==="us"?4:5];
+}
+function setUnits(sys){
+  if (sys === UNITS) return;
+  const us = {}; for (const id in INPUT_KIND) us[id] = numUS(id);   // read in the old system
+  UNITS = sys;
+  for (const id in INPUT_KIND) setUS(id, us[id]);                    // write in the new one
+  applyUnitLabels(); run();
+}
+window.addEventListener("site-units-change", e=>setUnits(e.detail.sys));
+
+document.querySelectorAll("#vce-tool .tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#vce-tool .tabs button").forEach(x=>x.classList.toggle("on",x===b));
+  document.querySelectorAll("#vce-tool .tabpane").forEach(p=>p.classList.toggle("on",p.id===PFX+b.dataset.tab));
+  if (b.dataset.tab==="t-nh3") runNH3();
+});
+
+// ---- single "service or case study" dropdown: blank = no screening, pick material directly
+(function buildServiceSelect(){
+  const s = $("service");
+  s.add(new Option("— None: I'll choose the material myself —", ""));
+  const g1 = document.createElement("optgroup"); g1.label = "Service (screens materials)";
+  for (const [k,v] of Object.entries(SERVICES)) g1.appendChild(new Option(v.label, k));
+  const g2 = document.createElement("optgroup"); g2.label = "Case study (fills conditions + service)";
+  PRESETS.forEach((p,i)=>g2.appendChild(new Option(p.name, "case:"+i)));
+  s.appendChild(g1); s.appendChild(g2);
+})();
+function effectiveService(){
+  const v = $("service").value;
+  return v.startsWith("case:") ? PRESETS[+v.slice(5)].set.service : v;
+}
+// material list: "Auto" only exists when a service is screening the candidates
+function refreshMatOptions(){
+  const m = $("mat"), prev = m.value, svc = effectiveService();
+  m.innerHTML = "";
+  if (svc) m.add(new Option("Auto: cheapest acceptable for the service", "auto"));
+  for (const [k,v] of Object.entries(MATS)) m.add(new Option(v.label, k));
+  m.value = [...m.options].some(o=>o.value===prev) ? prev : (svc ? "auto" : "SA-516-70");
+  $("rateOv").placeholder = svc ? "from service" : `${RATE_DEFAULT} (Seider 1/8 in CA)`;
+  $("rateNote").textContent = svc ? "Blank = use the service table rate for each material. A value here applies to every material."
+                                   : `No service: every material uses ${$("rateOv").value || RATE_DEFAULT} mpy and no screening is applied.`;
+}
+
+function volOf(D,L){ return Math.PI*D*D/4*L + Math.PI*D*D*D/12; }   // 2:1 heads
+function lenFromVol(V,D){ return (V - Math.PI*D*D*D/12)/(Math.PI*D*D/4); }
+function dFromVolLD(V,ld){ return Math.cbrt(V/(Math.PI*ld/4 + Math.PI/12)); }
+
+function readInputs(){
+  const rOv = $("rateOv").value === "" ? null : parseFloat($("rateOv").value);
+  return {orient:$("orient").value, D:numUS("D"), L:numUS("L"), P:numUS("P"), T:numUS("T"),
+    service:effectiveService(), mat:$("mat").value, life:+$("life").value, rateOv:rOv,
+    credit:$("credit").checked, g5:$("g5").checked, hold:$("hold").value, Dmin:numUS("Dmin"), Dmax:numUS("Dmax")};
+}
+
+// Auto sweep range: brackets the current design and stays inside practical L/D (1.5-8)
+const LD_LO = 1.5, LD_HI = 8;
+function autoRange(inp){
+  const V = volOf(inp.D, inp.L);
+  let lo, hi;
+  if (inp.hold === "S"){ lo = inp.D/3; hi = inp.D*3; }
+  else if (inp.hold === "L"){ lo = inp.L/LD_HI; hi = inp.L/LD_LO; }
+  else { lo = dFromVolLD(V, LD_HI); hi = dFromVolLD(V, LD_LO); }
+  lo = Math.min(lo, inp.D*0.8); hi = Math.max(hi, inp.D*1.25);   // always contain the design point
+  const r = x => Math.max(0.5, Math.round(x*2)/2);
+  return [r(Math.floor(lo*2)/2), r(Math.ceil(hi*2)/2)];
+}
+
+// evaluate every material at (D,L); returns list with screen + vessel
+function evalAll(inp, D, L){
+  return Object.keys(MATS).map(mat=>{
+    const sc = screen(inp.service, mat, inp.T, inp.rateOv);
+    if (!sc.ok) return {mat, sc, v:null};
+    const v = vessel({orient:inp.orient, D, L, P:inp.P, T:inp.T, mat, rate:sc.rate, life:inp.life, credit:inp.credit, g5:inp.g5});
+    return {mat, sc, v: v.ok ? v : null, why2: v.ok ? "" : v.reason};
+  });
+}
+function pick(list, matSel){
+  if (matSel !== "auto") return list.find(x=>x.mat===matSel);
+  const ok = list.filter(x=>x.v);
+  ok.sort((a,b)=>a.v.total-b.v.total);
+  return ok[0];
+}
+
+let ch1=null, ch2=null, h1=null, h2=null;
+function mkChart(id, cfg){ return (typeof Chart === "undefined") ? null : new Chart($(id), cfg); }
+
+function onServiceChange(){
+  const v = $("service").value;
+  if (v.startsWith("case:")){
+    const p = PRESETS[+v.slice(5)];
+    for (const [k,val] of Object.entries(p.set)){
+      if (k === "service" || k === "Dmin" || k === "Dmax" || k === "hold") continue;   // range is auto
+      const el = $(k); if (!el) continue;
+      if (el.type === "checkbox") el.checked = val; else if (INPUT_KIND[k]) setUS(k, val); else el.value = val;
+    }
+    $("serviceNote").textContent = `${p.note} Service: ${SERVICES[p.set.service].label}.`;
+  } else {
+    $("serviceNote").textContent = v ? "Materials are screened for this service; excluded ones are listed with the reason."
+                                     : "No screening. Choose the material below; all materials are still compared on the right.";
+  }
+  refreshMatOptions();
+  run();
+}
+$("service").addEventListener("change", onServiceChange);
+["orient","D","L","Dmin","Dmax","P","T","mat","life","rateOv","credit","g5","hold","autoRange"].forEach(id=>$(id).addEventListener("input",run));
+["Dmin","Dmax"].forEach(id=>$(id).addEventListener("input",()=>{ $("autoRange").checked = false; run(); }));
+$("rateOv").addEventListener("input", refreshMatOptions);
+
+function run(){
+  const inp = readInputs();
+  const V0 = volOf(inp.D, inp.L), LD0 = inp.L/inp.D;
+  $("Vol").value = fmt(toDisp("ft3",V0), UNITS==="us"?0:1);
+  $("LD").value = LD0.toFixed(2);
+  $("siEcho").textContent = UNITS==="us"
+    ? `= ${(inp.P*0.0689476).toFixed(1)} barg, ${((inp.T-32)/1.8).toFixed(0)} °C; D = ${(inp.D*0.3048).toFixed(2)} m, L = ${(inp.L*0.3048).toFixed(2)} m`
+    : `= ${(inp.P*0.0689476).toFixed(1)} barg; ${inp.P.toFixed(0)} psig, ${inp.T.toFixed(0)} °F; D = ${inp.D.toFixed(2)} ft, L = ${inp.L.toFixed(2)} ft`;
+  $("dEcho").textContent = u("ft", inp.D, 2, 2);
+
+  // --- sweep range (auto keeps the design point inside and L/D practical)
+  if ($("autoRange").checked){ [inp.Dmin, inp.Dmax] = autoRange(inp); setUS("Dmin", inp.Dmin); setUS("Dmax", inp.Dmax); }
+  if (!(inp.Dmax > inp.Dmin)) inp.Dmax = inp.Dmin + 1;
+  $("rangeNote").textContent = {
+    S:`Every point keeps L/D = ${LD0.toFixed(2)}; volume scales with D³.`,
+    L:`Every point keeps L = ${u("ft",inp.L,1,2)}.`,
+    V:`Every point keeps V = ${u("ft3",V0,0,1)}; auto range spans L/D ${LD_HI} → ${LD_LO}.`}[inp.hold];
+
+  // --- point calc
+  const list = evalAll(inp, inp.D, inp.L);
+  const sel = pick(list, inp.mat);
+  renderPoint(inp, list, sel);
+
+  // --- sweep (design D inserted so it can be marked)
+  const N = 45, Ds = [];
+  for (let i=0;i<N;i++) Ds.push(inp.Dmin + (inp.Dmax-inp.Dmin)*i/(N-1));
+  if (inp.D >= inp.Dmin && inp.D <= inp.Dmax && !Ds.some(d=>Math.abs(d-inp.D)<1e-9)) Ds.push(inp.D);
+  Ds.sort((a,b)=>a-b);
+  const rows = Ds.map(D=>{
+    const L = inp.hold==="S" ? LD0*D : inp.hold==="V" ? lenFromVol(V0,D) : inp.L;
+    if (L <= 0.5) return {D, L, list:null};
+    return {D, L, list: evalAll(inp, D, L), here: Math.abs(D-inp.D)<1e-9};
+  });
+  renderSweep(inp, rows, sel);
+}
+
+function renderPoint(inp, list, sel){
+  const k = $("kpis");
+  if (!sel || !sel.v){
+    k.innerHTML = `<div class="kpi"><div class="v bad">No acceptable design</div><div class="l">${sel ? (sel.sc.why || sel.why2) : "All materials excluded for this service / temperature"}</div></div>`;
+    $("mech").innerHTML = ""; $("costTable").innerHTML = ""; $("flags").innerHTML = ""; $("mechSum").textContent = ""; $("costSum").textContent = "";
+  } else {
+    const v = sel.v;
+    k.innerHTML = [
+      ["Material", MATS[sel.mat].label],
+      ["Wall (nominal)", thk(v.t)],
+      ["MAWP (corroded, at T<sub>d</sub>)", u("psig",v.MAWP)],
+      ["MAWT", u("F",v.MAWT)],
+      ["Purchase cost", money(v.CP)],
+      ["Total installed", money(v.total)],
+    ].map(([l,x])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${x}</div></div>`).join("");
+    const L = inp.L;
+    $("mechSum").textContent = `${thk(v.t)} wall (${v.governs} governs), MAWP ${u("psig",v.MAWP)}` + (v.flags.length ? ` · ${v.flags.length} flag${v.flags.length>1?"s":""}` : "");
+    $("costSum").textContent = `purchase ${money(v.CP)} + installation ${money(v.inst.mat+v.inst.lab+v.inst.ind)} + contingency ${money(v.cont)} = ${money(v.total)}`;
+    $("mech").innerHTML = `<table>
+      <tr><td>Design P / T</td><td>${u("psig",v.Pd)} / ${u("F",v.Td)}</td></tr>
+      <tr><td>Allowable stress S(T<sub>d</sub>), weld E</td><td>${u("psi",v.S,0,1)}, ${v.E}</td></tr>
+      <tr><td>Pressure thickness t<sub>p</sub></td><td>${u("in",v.tp,3,1)}</td></tr>
+      <tr><td>Wind/seismic t<sub>w</sub> (vertical)</td><td>${u("in",v.tw,3,1)}</td></tr>
+      <tr><td>Minimum thickness (Seider)</td><td>${thk(v.tmin)}</td></tr>
+      <tr><td>Corrosion allowance (${fmt(sel.sc.rate,1)} mpy × ${inp.life} yr)</td><td>${thk(v.CA)}</td></tr>
+      <tr><td>Required → nominal plate</td><td>${u("in",v.tReq,3,1)} → <b>${thk(v.t)}</b></td></tr>
+      <tr><td>Governs</td><td>${v.governs}</td></tr>
+      <tr><td>Metal above pressure need</td><td>${u("in",v.surplus,3,1)} (${u("in",v.freeCA,3,1)} beyond CA)</td></tr>
+      <tr><td>Corrosion life on that metal</td><td>${isFinite(v.lifeYr)?fmt(v.lifeYr,0)+" yr":"∞"}</td></tr>
+      <tr><td>MAWP (corroded, at T<sub>d</sub>)</td><td>${u("psig",v.MAWP)}</td></tr>
+      <tr><td>MAWT at P<sub>d</sub></td><td>${u("F",v.MAWT)} (VIII-1 limit ${u("F",STRESS.materials[sel.mat].max_T_VIII1_F)})</td></tr>
+      <tr><td>Weight (Seider basis / actual)</td><td>${fmt(toDisp("lb",v.W),0)} / ${u("lb",v.Wact)}</td></tr>
+      <tr><td>Volume, L/D</td><td>${u("ft3",volOf(inp.D,L),0,1)}, ${fmt(L/inp.D,1)}</td></tr>
+    </table>`;
+    $("flags").innerHTML = v.flags.map(f=>`<li>${f}</li>`).join("") +
+      (MATS[sel.mat].FMsrc.startsWith("ASSUMED") ? `<li>F<sub>M</sub> ${v.FM}: ${MATS[sel.mat].FMsrc}</li>` : "");
+    const g = n => v.items.filter(i=>i.group===n).map(i=>`<tr><td>&nbsp;&nbsp;${i.name}</td><td>${money(i.cost)}</td></tr>`).join("");
+    $("costTable").innerHTML = `<table>
+      <tr><th>Item</th><th>Cost</th></tr>
+      <tr><td>&nbsp;&nbsp;Vessel incl. nozzles, supports (C<sub>V</sub> × F<sub>M</sub> ${v.FM})</td><td>${money(v.CVm)}</td></tr>
+      <tr><td>&nbsp;&nbsp;Platforms and ladders</td><td>${money(v.CPL)}</td></tr>
+      <tr class="sub"><td>Purchase cost C<sub>P</sub> (incl. platforms/ladders)</td><td>${money(v.CP)}</td></tr>
+      <tr class="sub"><td>Installation materials</td><td>${money(v.inst.mat)}</td></tr>${g("mat")}
+      <tr class="sub"><td>Installation labour</td><td>${money(v.inst.lab)}</td></tr>${g("lab")}
+      <tr class="sub"><td>Indirects</td><td>${money(v.inst.ind)}</td></tr>${g("ind")}
+      <tr class="sub"><td>Bare-module cost</td><td>${money(v.CBM)}</td></tr>
+      <tr><td>Contingency 15% + fee 3%</td><td>${money(v.cont)}</td></tr>
+      <tr class="sub"><td>Total installed cost</td><td>${money(v.total)}</td></tr>
+    </table>
+    <div class="note">Installation is charged on the carbon-steel purchase cost (${money(v.CPcs)}), scaled to F<sub>BM</sub> = ${v.FBM} (${inp.orient==="V"?"vertical":"horizontal"}). CE ${CE_BASE} → ${CE_NOW}.</div>`;
+  }
+  // material table
+  const rows = list.map(x=>{
+    const v = x.v, cls = (sel && x.mat===sel.mat) ? "sel" : "";
+    if (!v) return `<tr class="${cls}"><td>${MATS[x.mat].label}</td><td>${x.sc.rating||"✗"}</td><td colspan="6" class="bad" style="text-align:left">${x.sc.why || x.why2 || ""}</td></tr>`;
+    return `<tr class="${cls}"><td>${MATS[x.mat].label}</td><td>${x.sc.rating}</td><td>${fmt(x.sc.rate,1)}</td><td>${thk(v.CA)}</td><td>${thk(v.t)}</td><td>${isFinite(v.lifeYr)?fmt(v.lifeYr,0):"∞"}</td><td>${fmt(toDisp("psig",v.MAWP),0)}</td><td>${money(v.total)}</td></tr>`;
+  }).join("");
+  $("matTable").innerHTML = `<table><tr><th>Material</th><th>Rating</th><th>mpy</th><th>CA</th><th>Wall</th><th>Life (yr)</th><th>MAWP (${ulab("psig")})</th><th>Installed</th></tr>${rows}</table>`;
+}
+
+function renderSweep(inp, rows, sel){
+  const holdTxt = {S:"L/D held (scale-up)", L:"length held", V:"volume held"}[inp.hold];
+  // chart 1: breakdown for the selected (or auto-cheapest) material
+  const pickRow = r => r.list ? pick(r.list, inp.mat) : null;
+  const pts = rows.map(r=>{ const p = pickRow(r); return p && p.v ? p : null; });
+  const X = D => toDisp("ft", D);
+  const xy = f => rows.map((r,i)=>({x:X(r.D), y: pts[i] ? f(pts[i].v) : null}));
+  let dsi = 0;
+  const ds = (lab, f, col) => ({label:lab, data:xy(v=>f(v)/1e3), backgroundColor:col, borderColor:col, fill:(dsi++===0?"origin":"-1"), stack:"s", pointRadius:0, borderWidth:0});
+  const c = [css("--c1"),css("--c2"),css("--c3"),css("--c4"),css("--c5")];
+  const hereRow = rows.findIndex(r=>r.here);
+  const hereMark = (y, col) => ({label:"This design", data: hereRow>=0 && y!==null ? [{x:X(rows[hereRow].D), y}] : [], showLine:false,
+     pointRadius:7, pointHoverRadius:8, pointStyle:"rectRot", backgroundColor:col, borderColor:css("--panel"), borderWidth:2, stack:"here", order:-1});
+  const hereTotal = hereRow>=0 && pts[hereRow] ? pts[hereRow].v.total/1e3 : null;
+  const d1 = [
+    ds("Purchase (equipment)", v=>v.CP, c[0]),
+    ds("Installation materials", v=>v.inst.mat, c[1]),
+    ds("Installation labour", v=>v.inst.lab, c[2]),
+    ds("Indirects", v=>v.inst.ind, c[3]),
+    ds("Contingency + fee", v=>v.cont, c[4]),
+    {label:`Wall thickness (${ulab("in")})`, type:"line", data:xy(v=>toDisp("in",v.t)), yAxisID:"y2", borderColor:css("--ink"), borderDash:[5,4], pointRadius:0, fill:false, stack:"t", borderWidth:1.5},
+    hereMark(hereTotal, css("--bad")),
+  ];
+  $("chart1sub").textContent = inp.mat==="auto" ? "(cheapest acceptable material at each D)" : "("+MATS[inp.mat].label+")";
+  const gridC = css("--line"), inkC = css("--muted");
+  const baseOpts = (ytitle) => ({responsive:true, maintainAspectRatio:false, animation:false, parsing:true,
+    interaction:{mode:"nearest", axis:"x", intersect:false},
+    plugins:{legend:{labels:{color:inkC,boxWidth:12,font:{size:11}}},
+      tooltip:{callbacks:{title:t=>`D = ${t[0].parsed.x.toFixed(2)} ${ulab("ft")}`, label:t=>`${t.dataset.label}: ${t.raw.y===null?"–":(t.dataset.yAxisID==="y2"?t.raw.y.toFixed(UNITS==="us"?3:1)+" "+ulab("in"):"$"+Math.round(t.raw.y).toLocaleString()+"k")}`}}},
+    scales:{x:{type:"linear", min:X(inp.Dmin), max:X(inp.Dmax), title:{display:true,text:`Inside diameter (${ulab("ft")}), ${holdTxt}`,color:inkC},ticks:{color:inkC,maxTicksLimit:12},grid:{color:gridC}},
+            y:{title:{display:true,text:ytitle,color:inkC},ticks:{color:inkC},grid:{color:gridC},stacked:true,beginAtZero:true}}});
+  const o1 = baseOpts("Cost ($k)");
+  o1.scales.y2 = {position:"right",title:{display:true,text:`Wall (${ulab("in")})`,color:inkC},ticks:{color:inkC},grid:{display:false},beginAtZero:true};
+  if (ch1) ch1.destroy();
+  ch1 = mkChart("c1", {type:"line", data:{datasets:d1}, options:o1});
+
+  // chart 2: total installed per material
+  const palette = ["#1f6feb","#0b7a75","#e5a50a","#d9480f","#8e55d9","#c2255c","#12a594","#5c7cfa","#868e96"];
+  const mats = Object.keys(MATS);
+  const d2 = mats.map((m,i)=>({label:MATS[m].label,
+     data:rows.map(r=>{ const x = r.list && r.list.find(z=>z.mat===m); return {x:X(r.D), y: x&&x.v ? x.v.total/1e3 : null}; }),
+     borderColor:palette[i], backgroundColor:palette[i],
+     pointRadius:rows.map(r=>{ if(!r.list) return 0; const p=pick(r.list,"auto"); return p&&p.mat===m?3:0; }), borderWidth:1.8, spanGaps:false}))
+     .filter(d=>d.data.some(p=>p.y!==null));
+  const selHere = hereRow>=0 && sel && sel.v ? sel.v.total/1e3 : null;
+  d2.push(hereMark(selHere, css("--bad")));
+  const o2 = baseOpts("Total installed ($k)"); o2.scales.y.stacked=false; o2.scales.y.beginAtZero=false;
+  if (ch2) ch2.destroy();
+  ch2 = mkChart("c2", {type:"line", data:{datasets:d2}, options:o2});
+}
+
+// ============================================================================
+// Haber-Bosch loop pressure case study
+// ============================================================================
+const Rg = 8.314;
+function KpGB(T){ // Gillespie-Beattie, atm^-1, 1/2N2 + 3/2H2 = NH3
+  const l = -2.691122*Math.log10(T) - 5.519265e-5*T + 1.848863e-7*T*T + 2001.6/T + 2.6899;
+  return Math.pow(10,l);
+}
+function yNH3eq(P_bar, T, yi){ // equilibrium NH3 mole fraction, 3:1 H2:N2 with inert fraction yi (on NH3-free basis)
+  const Patm = P_bar/1.01325, K = KpGB(T);
+  let lo=0, hi=0.9;
+  const f = y => { const rest = (1-y)*(1-yi); const yN = rest/4, yH = 3*rest/4; return y/(Math.pow(yN,0.5)*Math.pow(yH,1.5)*Patm) - K; };
+  for (let i=0;i<80;i++){ const m=(lo+hi)/2; if (f(m)>0) hi=m; else lo=m; }
+  return (lo+hi)/2;
+}
+function psatNH3_bar(Tc){ // Antoine (NIST, 239.6-371.5 K): log10(P/bar) = 4.86886 - 1113.928/(T - 10.409)
+  const T = Tc+273.15; return Math.pow(10, 4.86886 - 1113.928/(T - 10.409));
+}
+function compPower(Fmol, P1, P2, T1, eta, k){ // W, intercooled equal ratio <= 3
+  const r = P2/P1; if (r<=1) return {W:0,N:0};
+  const N = Math.max(1, Math.ceil(Math.log(r)/Math.log(3)));
+  const rs = Math.pow(r,1/N), e = (k-1)/k;
+  const W = N*Fmol*Rg*T1/e/eta*(Math.pow(rs,e)-1);
+  return {W, N};
+}
+// Seider Eq. 16.35-16.36 (PDF p.496): centrifugal C_B = exp{9.1553 + 0.63 ln P_C}, P_C in hp (200-30,000),
+// CE 567, base includes an electric motor; F_D = 1.15 for a steam-turbine drive. Installed x2.15.
+// Same basis as the Compressor Train calculator.
+const FD_DRIVE = {motor:1.00, steam:1.15};
+function compCost(W, drive){
+  const hp = Math.max(W/745.7, 200);
+  return Math.exp(9.1553 + 0.63*Math.log(hp))*FD_DRIVE[drive]*ESC*2.15;
+}
+// Cost of one kWh of compressor shaft work.
+// Motor: grid price / motor efficiency (95%, Seider p.496).
+// Steam turbine: steam rate x blended steam value; the blend is the share of turbine steam raised from
+// recovered reformer/WHB heat (valued at its boiler-feed-water cost when it has no other use) vs make-up
+// steam that must be fired or bought. Default steam rate 3.45 kg/kWh = condensing turbine,
+// 105 bar / 510 C (Ammonia Process Memoir HP header) to 0.10 bar, isentropic eff. 0.80 (IAPWS-95).
+const ETA_MOTOR = 0.95;
+function shaftEnergyCost(drive, elec, ssc, sharePct, vRec, vMk){
+  if (drive === "motor") return elec/ETA_MOTOR;
+  const f = Math.min(Math.max(sharePct,0),100)/100;
+  return ssc*(f*vRec + (1-f)*vMk)/1000;
+}
+
+function runNH3(){
+  const g = id => +$(id).value;
+  const mtpd=g("h_mtpd"), P0=g("h_p0"), Pmin=g("h_pmin"), Pmax=g("h_pmax"), Tout=g("h_tout")+273.15, app=g("h_app"),
+        yi=g("h_inert"), Tsep=g("h_tsep"), ghsv=g("h_gh"), LD=g("h_ld"), Tshell=g("h_tshell"), eta=g("h_eta"),
+        elec=g("h_elec"), hrs=g("h_hrs"), crf=g("h_crf"), dP=g("h_dp");
+  const drive = $("h_drive").value;
+  const cKWh = shaftEnergyCost(drive, elec, g("h_ssc"), g("h_int"), g("h_vrec"), g("h_vmk"));
+  ["h_ssc","h_int","h_vrec","h_vmk"].forEach(id=>$(id).disabled = drive==="motor");
+  $("h_energyNote").textContent = drive==="motor"
+    ? `Shaft energy: $${cKWh.toFixed(4)}/kWh (grid ÷ ${ETA_MOTOR} motor efficiency).`
+    : `Shaft energy: $${cKWh.toFixed(4)}/kWh (= steam rate × blended steam value). Grid via motor would be $${(elec/ETA_MOTOR).toFixed(4)}/kWh.`;
+  const xi = mtpd*1e6/86400/17.031;                  // mol/s NH3
+  const Fmk = xi*2;                                  // makeup ~ 2 mol (N2+3H2)/mol NH3 ideal (1.5 H2 + 0.5 N2)
+  const Fmk_tot = Fmk/(1-0.013);                     // + ~1.3% inerts in makeup (Ammonia Process makeup: 1% CH4, 0.3% Ar)
+  const out = [];
+  for (let P=Pmin; P<=Pmax+1e-9; P+= (Pmax-Pmin)/38){
+    const yin = Math.min(psatNH3_bar(Tsep)/P, 0.2);
+    const yeq = yNH3eq(P, Tout, yi);
+    const yout = yin + app*(yeq - yin);
+    if (yout <= yin + 1e-4){ continue; }
+    const Fin = xi*(1+yout)/(yout-yin);              // mol/s converter inlet
+    const RR = (Fin - Fmk_tot)/Fmk_tot;              // recycle ratio
+    // converter
+    // Catalyst volume from GHSV on STP flow (0 C, 1 atm): independent of P, so wall metal ~ P x V rises with P.
+    // (A residence time at actual conditions would give V ~ 1/P and cancel the thickness effect.)
+    const Qstp = Fin*0.022414*3600;                  // Nm3/h
+    const Vcat = Qstp/ghsv, Vves = 1.3*Vcat;
+    const Dc = Math.cbrt(4*Vves/(Math.PI*LD)), Lc = LD*Dc;
+    const Pg = P*14.5038 - 14.696;                   // psig
+    const conv = vessel({orient:"V", D:Dc/0.3048, L:Lc/0.3048, P:Pg, T:Tshell*1.8+32, mat:"SA-387-22-2", rate:0.5, life:20, credit:true, g5:false});
+    // separator (vapor = loop gas leaving separator, ~Fin minus product)
+    const Fv = Fin; const TsK = Tsep+273.15;         // separator vapour ~ recycle + makeup-equivalent flow
+    const MWv = (1-yi-yin)*(0.75*2.016 + 0.25*28.014) + yi*20 + yin*17.03;   // g/mol; inerts ~CH4/Ar mix
+    const rhoV = P*1e5*MWv/1000/(Rg*TsK), rhoL = 652;
+    const umax = 0.107*Math.sqrt((rhoL-rhoV)/rhoV);
+    const Qv = Fv*Rg*TsK/(P*1e5);
+    const Ds = Math.sqrt(4*Qv/(Math.PI*umax)), Ls = 3.5*Ds;
+    const sep = vessel({orient:"V", D:Math.max(Ds,0.6)/0.3048, L:Math.max(Ls,2)/0.3048, P:Pg, T:(Tsep*1.8+32), mat:"SA-516-70", rate:1, life:20, credit:true, g5:false});
+    // compressors
+    const mk = compPower(Fmk_tot, P0, P, 313.15, eta, 1.40);
+    const circ = compPower(Fin, P-dP, P, 313.15, eta, 1.40);
+    const Wtot = mk.W + circ.W;
+    const capConv = conv.ok ? conv.total : NaN, capSep = sep.ok ? sep.total : NaN;
+    const capComp = compCost(mk.W, drive) + (circ.W>0?compCost(circ.W, drive):0);
+    const opex = Wtot/1000*hrs*cKWh;
+    out.push({P, yin, yeq, yout, Fin, RR, Dc, Lc, tc:conv.ok?conv.t:NaN, Ds, ts:sep.ok?sep.t:NaN, mkN:mk.N, Wmk:mk.W, Wc:circ.W,
+      capConv, capSep, capComp, opex, ann: crf*(capConv+capSep+capComp)+opex, conv, sep});
+  }
+  const valid = out.filter(r=>isFinite(r.ann));
+  const best = valid.reduce((a,b)=>b.ann<a.ann?b:a, valid[0]);
+  $("h_kpis").innerHTML = best ? [
+    ["Cheapest loop P", fmt(best.P,0)+" bar"],
+    ["Annualized cost there", money(best.ann)+"/yr"],
+    ["Per-pass NH₃ (in → out)", (best.yin*100).toFixed(1)+"% → "+(best.yout*100).toFixed(1)+"%"],
+    ["Recycle ratio", fmt(best.RR,1)],
+    ["Converter D × wall", fmt(best.Dc,2)+" m × "+fmt(best.tc*25.4,0)+" mm"],
+    ["Total compression", fmt((best.Wmk+best.Wc)/1e6,1)+" MW"],
+    ["Shaft energy cost", "$"+cKWh.toFixed(3)+"/kWh"],
+  ].map(([l,x])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${x}</div></div>`).join("") : "";
+  const labels = valid.map(r=>r.P.toFixed(0));
+  const inkC = css("--muted"), gridC = css("--line");
+  const sc = (t)=>({ticks:{color:inkC},grid:{color:gridC},title:{display:true,text:t,color:inkC}});
+  const c = [css("--c1"),css("--c2"),css("--c3"),css("--c4")];
+  if (h1) h1.destroy();
+  h1 = mkChart("h1", {type:"line",data:{labels,datasets:[
+    {label:"Converter capital (annualized)",fill:"origin",data:valid.map(r=>crf*r.capConv/1e6),backgroundColor:c[0],borderColor:c[0],stack:"a",pointRadius:0},
+    {label:"Separator capital (annualized)",fill:"-1",data:valid.map(r=>crf*r.capSep/1e6),backgroundColor:c[1],borderColor:c[1],stack:"a",pointRadius:0},
+    {label:"Compressor capital (annualized)",fill:"-1",data:valid.map(r=>crf*r.capComp/1e6),backgroundColor:c[2],borderColor:c[2],stack:"a",pointRadius:0},
+    {label:"Compression energy",fill:"-1",data:valid.map(r=>r.opex/1e6),backgroundColor:c[3],borderColor:c[3],stack:"a",pointRadius:0},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},
+    plugins:{legend:{labels:{color:inkC,boxWidth:12,font:{size:11}}}},
+    scales:{x:sc("Loop pressure (bar)"),y:{...sc("$M / yr"),stacked:true,beginAtZero:true}}}});
+  if (h2) h2.destroy();
+  h2 = mkChart("h2", {type:"line",data:{labels,datasets:[
+    {label:"Equilibrium NH₃ at outlet T (%)",data:valid.map(r=>r.yeq*100),borderColor:c[0],pointRadius:0,yAxisID:"y"},
+    {label:"Converter outlet NH₃ (%)",data:valid.map(r=>r.yout*100),borderColor:c[1],pointRadius:0,yAxisID:"y"},
+    {label:"Recycle NH₃ slip (%)",data:valid.map(r=>r.yin*100),borderColor:c[2],pointRadius:0,yAxisID:"y"},
+    {label:"Recycle ratio",data:valid.map(r=>r.RR),borderColor:c[3],borderDash:[5,4],pointRadius:0,yAxisID:"y2"},
+  ]},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},
+    plugins:{legend:{labels:{color:inkC,boxWidth:12,font:{size:11}}}},
+    scales:{x:sc("Loop pressure (bar)"),y:{...sc("NH₃ mole %"),beginAtZero:true},y2:{...sc("Recycle ratio"),position:"right",grid:{display:false},beginAtZero:true}}}});
+  $("h_table").innerHTML = `<table><tr><th>P (bar)</th><th>y<sub>eq</sub></th><th>y<sub>out</sub></th><th>Recycle</th><th>Conv. D (m)</th><th>Conv. wall (mm)</th><th>Sep. D (m)</th><th>Sep. wall (mm)</th><th>Makeup stages</th><th>Power (MW)</th><th>Capital ($M)</th><th>Annualized ($M/yr)</th></tr>` +
+    valid.filter((r,i)=>i%3===0 || r===best).map(r=>`<tr class="${r===best?"sel":""}"><td>${fmt(r.P,0)}</td><td>${(r.yeq*100).toFixed(1)}%</td><td>${(r.yout*100).toFixed(1)}%</td><td>${fmt(r.RR,1)}</td><td>${fmt(r.Dc,2)}</td><td>${fmt(r.tc*25.4,0)}</td><td>${fmt(r.Ds,2)}</td><td>${fmt(r.ts*25.4,0)}</td><td>${r.mkN}</td><td>${fmt((r.Wmk+r.Wc)/1e6,1)}</td><td>${fmt((r.capConv+r.capSep+r.capComp)/1e6,1)}</td><td>${fmt(r.ann/1e6,2)}</td></tr>`).join("") + "</table>";
+  const flagsC = best ? best.conv.flags.concat(best.sep.flags) : [];
+  $("h_note").innerHTML = "Trend model only: ideal-gas equilibrium, fixed approach to equilibrium and GHSV, no refrigeration duty, no purge/H₂ recovery. Flags at the optimum: " + (flagsC.length? flagsC.join(" ") : "none") +
+    "<br>Compare: the Ammonia Process design (Memoir) runs the loop at 150 bar with recycle ratio 5. At 150 bar this sweep gives a recycle ratio of " +
+    (()=>{ const r = valid.reduce((a,b)=>Math.abs(b.P-150)<Math.abs(a.P-150)?b:a, valid[0]); return r ? `${fmt(r.RR,1)} (at ${fmt(r.P,0)} bar) and an annualized cost within ${fmt(Math.abs(r.ann/best.ann-1)*100,0)}% of the cheapest point.` : "–."; })();
+}
+["h_mtpd","h_p0","h_pmin","h_pmax","h_tout","h_app","h_inert","h_tsep","h_gh","h_ld","h_tshell","h_eta","h_elec","h_hrs","h_crf","h_dp","h_drive","h_ssc","h_int","h_vrec","h_vmk"].forEach(id=>$(id).addEventListener("input",runNH3));
+
+// init
+applyUnitLabels();
+$("service").value = "case:0"; onServiceChange();
+if (window.SITE_UNIT_SYS === "si") setUnits("si");   // portfolio toggle already on SI at load
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{ run(); if($("t-nh3").classList.contains("on")) runNH3(); });
+/*END TOOL JS*/</script>
+</body>
+</html>
