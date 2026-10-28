@@ -9,6 +9,10 @@ runs a **Haber-Bosch loop pressure** case study: converter, separator, and compr
 > VS Code or any editor, and extend it for your own case with your AI assistant. This README is written for
 > both of you. Taking these tools further is a free service of
 > [Sharpes Process Engineering](https://jsharpes-portfolio.netlify.app); the site's Ask box can point you to the right starting file.
+>
+> **License:** [MIT](LICENSE) for the code and original text: use, modify and share freely, keeping the
+> copyright notice. Provided as is, without warranty of any kind. It is an engineering study aid, not a
+> substitute for a design checked and sealed by a licensed professional engineer.
 
 - **Live tool:** https://jsharpes-portfolio.netlify.app/#vce-tool
 - **Run it locally:** download this repo and open `index.html`. `lib/chart.umd.min.js` must sit next to it.
