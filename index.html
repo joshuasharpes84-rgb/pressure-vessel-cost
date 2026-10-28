@@ -408,6 +408,27 @@
           #vce-tool details.fold[open]>summary{margin-bottom:10px}
           #vce-tool .scroll{overflow-x:auto}
           #vce-tool code{font-size:12px}
+          /* Sources panel (portfolio rule 2026-10-27): cover thumbnails from portfolio-site/assets/source-thumbs/ */
+          #vce-tool details.srcs{--sp-bg:var(--panel);--sp-bg2:var(--bg);--sp-line:var(--line);--sp-muted:var(--muted);--sp-ink:var(--ink);--sp-acc:var(--accent)}
+          #vce-tool details.srcs{display:block;margin:6px 0 10px;padding:0;border:1px solid var(--sp-line);border-radius:8px;background:var(--sp-bg);box-shadow:none}
+          #vce-tool details.srcs>summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;padding:8px 12px;background:none;border:0;border-radius:8px;box-shadow:none;position:static;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sp-muted);user-select:none}
+          #vce-tool details.srcs>summary::-webkit-details-marker{display:none}
+          #vce-tool details.srcs>summary::marker{content:""}
+          #vce-tool details.srcs>summary::before{content:"\25B8";color:var(--sp-acc);width:12px}
+          #vce-tool details.srcs[open]>summary::before{content:"\25BE"}
+          #vce-tool details.srcs>summary:hover{color:var(--sp-acc)}
+          #vce-tool details.srcs .srcnote{margin:0;padding:0 12px 8px;font-size:12px;line-height:1.45;color:var(--sp-muted)}
+          #vce-tool details.srcs .srcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin:0;padding:0 12px 12px}
+          #vce-tool details.srcs .src{display:grid;grid-template-columns:52px minmax(0,1fr);gap:10px;align-items:start;margin:0;padding:8px;background:var(--sp-bg);border:1px solid var(--sp-line);border-radius:6px;color:var(--sp-ink);text-decoration:none;box-shadow:none;transform:none}
+          #vce-tool details.srcs a.src:hover{border-color:var(--sp-acc)}
+          #vce-tool details.srcs .src img,#vce-tool details.srcs .src .ico{display:block;width:52px;height:68px;margin:0;padding:0;object-fit:cover;object-position:top;border:1px solid var(--sp-line);border-radius:3px;background:var(--sp-bg2)}
+          #vce-tool details.srcs .src img.wide,#vce-tool details.srcs .src .ico.wide{height:30px}
+          #vce-tool details.srcs .src .ico{display:grid;place-items:center;font-size:9px;font-weight:700;letter-spacing:.04em;color:var(--sp-muted)}
+          #vce-tool details.srcs .src b{display:block;margin:0;font-size:13px;line-height:1.25;font-weight:600;color:var(--sp-ink)}
+          #vce-tool details.srcs .src .w{display:block;margin:2px 0 0;font-size:11.5px;line-height:1.35;color:var(--sp-muted)}
+          #vce-tool details.srcs .src .k{display:block;margin:0 0 2px;font-style:normal;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--sp-acc)}
+          #vce-tool details.srcs .src .k.off{color:var(--sp-muted)}
+          @media (max-width:560px){#vce-tool details.srcs .srcgrid{grid-template-columns:minmax(0,1fr)}}
         </style>
 
         <p style="font-size:13px; color:var(--muted); margin-bottom:16px; line-height:1.6;">
@@ -419,6 +440,11 @@
         </p>
 
         <div id="vce-tool">
+        <details class="srcs">
+          <summary>Sources behind this tool <span id="vce-srccount"></span></summary>
+          <p class="srcnote">Decks and tools open on this site in a new tab. Books, papers and methods are cited, not linked. Detail by topic: SOURCES.md in the Method &amp; code repo.</p>
+          <div class="srcgrid" id="vce-srcgrid"></div>
+        </details>
         <div class="tabs">
           <button class="on" data-tab="t-vessel">Vessel vs. diameter</button>
           <button data-tab="t-nh3">Case study: Haber-Bosch loop pressure</button>
@@ -905,6 +931,43 @@ function fmt(x, d=2){ return (x===null||x===undefined||!isFinite(x)) ? "–" : x
 function money(x){ if(!isFinite(x)) return "–"; if (Math.abs(x)>=1e6) return "$"+(x/1e6).toFixed(2)+"M"; return "$"+Math.round(x/1000).toLocaleString()+"k"; }
 function frac(t){ const n = Math.round(t*16); const w = Math.floor(n/16), r = n%16; if(!r) return `${w} in`; const g = (a,b)=>b?g(b,a%b):a; const k=g(r,16); return `${w?w+" ":""}${r/k}/${16/k} in`; }
 function css(v){ return getComputedStyle(document.getElementById("vce-tool")).getPropertyValue(v).trim(); }
+
+// ---- Sources panel (portfolio rule 2026-10-27; kept in step with SOURCES.md).
+// [thumbnail id | null, kind, title, what it supplied, Netlify URL (decks/tools only) | null].
+// Thumbnails: portfolio-site/assets/source-thumbs/<id>.jpg (Not on Website/source_thumbs/build_source_thumbs.py).
+// The standalone page sets window.SRC_THUMB_BASE to reach that folder on disk.
+(function renderSources(){
+  const TH = window.SRC_THUMB_BASE || "assets/source-thumbs/";
+  const SOURCES = [
+    ["seider", "book", "Seider et al., Product and Process Design Principles, §16.5", "Design P and T, UG-27 wall, weight, purchase cost, F<sub>M</sub>, Guthrie installation items, contingency; Example 16.12 check; Eq. 16.36 compressor cost; Table 17.1 steam price"],
+    ["asme2d", "book", "ASME BPVC Section II Part D (2013)", "Allowable stress vs. temperature for the 9 plate materials (Tables 1A/1B), cited per value; VIII-1 temperature limits"],
+    ["perry9", "book", "Perry's 9th ed., Table 25-3 and Sec. 10", "Corrosion rating convention (✓ &lt; 2 mpy, △ 2–16, ✗ ≥ 16); ASME vessel overview; cladding economics"],
+    ["peters", "book", "Peters &amp; Timmerhaus, Plant Design and Economics", "ASME thickness equations and heads (Ch. 12); corrosion-allowance heuristics (App. E)"],
+    ["coulson6", "book", "Coulson &amp; Richardson Vol. 6 (Sinnott)", "Vessel mechanical design (Ch. 13); minimum corrosion allowance for carbon steel; alloy premium narrowing with wall thickness"],
+    ["meyers", "book", "Meyers, Handbook of Petrochemical Production Processes", "Preset service conditions: oxo hydroformylation (Ch. 8.1), Lurgi methanol (Ch. 7.1)"],
+    [null, "method", "Materials of Construction methodology", "Per-mechanism material screen, UNS naming; cracking mechanisms block the corrosion-allowance route"],
+    [null, "report", "Ammonia Plant Memoir (own design)", "Haber-Bosch basis: 150 bar loop, recycle ratio 5, V-401 knock-out"],
+    [null, "method", "Gillespie–Beattie NH₃ equilibrium", "Loop equilibrium conversion (ideal gas; fugacity neglected, disclosed)"],
+    [null, "method", "IAPWS-95 via thermo", "Turbine steam rate 3.45 kg/kWh (105 bar / 510 °C to 0.1 bar, 80 % isentropic)"],
+    [null, "method", "Nelson curves / API 941", "Cr-Mo converter shell for hot hydrogen (inference; standard not held)"],
+  ];
+  const grid = $("srcgrid");
+  if (!grid) return;
+  $("srccount").textContent = "· " + SOURCES.length;
+  grid.innerHTML = SOURCES.map(([id, kind, title, what, url]) => {
+    const wide = kind === "deck" ? " wide" : "";
+    const ico = `<span class="ico${wide}">${kind.toUpperCase()}</span>`;
+    const img = id ? `<img src="${TH}${id}.jpg" alt="" loading="lazy" class="${wide.trim()}" data-kind="${kind}">` : ico;
+    const linkable = kind === "deck" || kind === "tool";
+    const off = linkable && !url;
+    const inner = `${img}<div><i class="k${off ? " off" : ""}">${kind}${off ? " · not on the site yet" : ""}</i><b>${title}${linkable && url ? " ↗" : ""}</b><span class="w">${what}</span></div>`;
+    return linkable && url ? `<a class="src" href="${url}" target="_blank" rel="noopener">${inner}</a>` : `<div class="src">${inner}</div>`;
+  }).join("");
+  grid.querySelectorAll("img").forEach(im => im.addEventListener("error", () => {
+    const k = im.dataset.kind, s = document.createElement("span");
+    s.className = "ico" + (k === "deck" ? " wide" : ""); s.textContent = k.toUpperCase(); im.replaceWith(s);
+  }));
+})();
 
 // ---- Units. The engine is US customary throughout; SI only converts at the input/output boundary.
 // Driven by the 'site-units-change' event (portfolio site-wide toggle, or this page's own switch).

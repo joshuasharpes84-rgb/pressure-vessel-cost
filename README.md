@@ -5,6 +5,11 @@ back-calculates **MAWP** and **MAWT**, screens materials of construction, and re
 **itemized** installation cost. It then sweeps diameter and plots the cost stack against D. A second tab
 runs a **Haber-Bosch loop pressure** case study: converter, separator, and compression cost against loop pressure.
 
+> **Make it yours, free:** download this repo (**Code → Download ZIP**, or `git clone`), open the folder in
+> VS Code or any editor, and extend it for your own case with your AI assistant. This README is written for
+> both of you. Taking these tools further is a free service of
+> [Sharpes Process Engineering](https://jsharpes-portfolio.netlify.app); the site's Ask box can point you to the right starting file.
+
 - **Live tool:** https://jsharpes-portfolio.netlify.app/#vce-tool
 - **Run it locally:** download this repo and open `index.html`. `lib/chart.umd.min.js` must sit next to it.
   `project/Vessel Cost Explorer (standalone).html` is the canonical development copy with its own US/SI switch.
